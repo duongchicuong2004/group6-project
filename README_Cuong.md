@@ -1,16 +1,17 @@
-## Vai trò cá nhân
 
 **Họ tên:** Dương Chí Cường  
-**Vai trò:** Backend Developer  
+**Vai trò:** Frontend Developer  
 
 ### Nhiệm vụ chính:
-- Thiết kế và xây dựng API bằng Node.js + Express
-- Kết nối với MongoDB
-- Triển khai RESTful API cho frontend sử dụng
-- Viết tài liệu API (endpoint, method, body request, response)
+- Xây dựng giao diện người dùng bằng React
+- Kết nối API từ backend
+- Thiết kế component, layout, routing
+- Triển khai và kiểm thử giao diện
 
 ### Công cụ sử dụng:
 - VS Code
 - Git + GitHub
-- Postman
+- Chrome DevTools
+" > README_Cuong.md
+
 
