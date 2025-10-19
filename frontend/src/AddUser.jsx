@@ -6,6 +6,19 @@ function AddUser({ onAddUser }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // 🧩 Validation được thêm vào (không sửa logic cũ)
+    if (!name.trim()) {
+      alert("Tên không được để trống!");
+      return;
+    }
+
+    const emailPattern = /\S+@\S+\.\S+/;
+    if (!emailPattern.test(email)) {
+      alert("Email không hợp lệ!");
+      return;
+    }
+
     if (!name || !email) return alert("Vui lòng nhập đủ thông tin!");
     onAddUser(name, email);
     setName("");
