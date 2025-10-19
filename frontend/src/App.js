@@ -16,7 +16,7 @@ function App() {
     }
   };
 
-  // 🔹 Hàm thêm người dùng
+  // 🔹 Thêm người dùng
   const handleAddUser = async (name, email) => {
     try {
       await fetch("http://localhost:5000/user", {
@@ -24,13 +24,38 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email }),
       });
-      fetchUsers(); // <-- gọi lại để cập nhật danh sách
+      fetchUsers();
     } catch (err) {
       console.error("Lỗi khi thêm người dùng:", err);
     }
   };
 
-  // 🔹 Gọi fetch lần đầu khi render
+  // 🔹 XÓA user
+  const handleDelete = async (id) => {
+    try {
+      await fetch(`http://localhost:5000/user/${id}`, {
+        method: "DELETE",
+      });
+      setUsers(users.filter((u) => u._id !== id));
+    } catch (err) {
+      console.error("Lỗi khi xóa người dùng:", err);
+    }
+  };
+
+  // 🔹 SỬA user
+  const handleEdit = async (id, updatedUser) => {
+    try {
+      await fetch(`http://localhost:5000/user/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser),
+      });
+      fetchUsers();
+    } catch (err) {
+      console.error("Lỗi khi sửa người dùng:", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -39,7 +64,13 @@ function App() {
     <div>
       <h2>Quản lý người dùng (Kết nối MongoDB Atlas)</h2>
       <AddUser onAddUser={handleAddUser} />
-      <UserList users={users} />
+      {/* ✅ Truyền thêm setUsers, handleEdit, handleDelete */}
+      <UserList
+        users={users}
+        setUsers={setUsers}
+        handleEdit={handleEdit}
+        handleDelete={handleDelete}
+      />
     </div>
   );
 }
