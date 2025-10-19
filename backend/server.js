@@ -1,20 +1,19 @@
-
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes.js";
-
-dotenv.config();
+import authRoutes from "./routes/auth.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
+// ⚙️ Cấu hình trực tiếp (bỏ dotenv)
+const PORT = 5000;
+const MONGO_URI =
+  "mongodb+srv://group6user:Group6%402025@cluster6project.p4s7w6s.mongodb.net/groupDB?retryWrites=true&w=majority&appName=Cluster6Project";
 
-// Kết nối MongoDB
+// 🧠 Kết nối MongoDB Atlas
 mongoose
   .connect(MONGO_URI, {
     tls: true,
@@ -22,18 +21,19 @@ mongoose
     serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 20000,
   })
-  .then(() => console.log("✅ Kết nối MongoDB thành công!"))
+  .then(() => console.log("✅ Kết nối MongoDB Atlas thành công!"))
   .catch((err) => console.error("❌ Lỗi kết nối MongoDB:", err));
 
-// Route test
+// 🔗 Route test
 app.get("/", (req, res) => {
-  res.send("Server backend đang hoạt động ✅");
+  res.send("🚀 Server backend đang hoạt động!");
 });
 
-// 👇 Gắn router /user
+// 👇 Gắn route /user và /auth
 app.use("/user", userRoutes);
+app.use("/auth", authRoutes);
 
-// Khởi động server
+// 🚀 Khởi động server
 app.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`✅ Server đang chạy tại: http://localhost:${PORT}`);
 });
