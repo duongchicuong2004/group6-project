@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import AddUser from "./AddUser";
 import UserList from "./UserList";
+import SignUp from "./SignUp";
+import Login from "./Login";
 import "./App.css";
 
 function App() {
   const [users, setUsers] = useState([]);
-
-  // ✅ State nâng cao
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // 🔹 Điều hướng giữa các trang
+  const [page, setPage] = useState("users");
 
   // 🔹 Lấy danh sách người dùng từ backend
   const fetchUsers = async () => {
@@ -70,25 +73,40 @@ function App() {
     fetchUsers();
   }, []);
 
+  // ==============================
+  // ✅ GIAO DIỆN
+  // ==============================
   return (
-  <div className="app-container">
-    <div className="app-card">
-      <h2>📋 Quản lý người dùng (Kết nối MongoDB Atlas)</h2>
+    <div className="app-container">
+      <div className="app-card">
+        <h2>📋 Ứng dụng quản lý người dùng</h2>
 
-      {/* ✅ Hiển thị trạng thái */}
-      {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
-      {error && <p className="error">{error}</p>}
+        {/* 🔹 Thanh điều hướng */}
+        <div style={{ marginBottom: "20px" }}>
+          <button onClick={() => setPage("login")}>Đăng nhập</button>
+          <button onClick={() => setPage("signup")}>Đăng ký</button>
+          <button onClick={() => setPage("users")}>Quản lý người dùng</button>
+        </div>
 
-      <AddUser onAddUser={handleAddUser} />
-      <UserList
-        users={users}
-        setUsers={setUsers}
-        handleEdit={handleEdit}
-        handleDelete={handleDelete}
-      />
+        {/* 🔹 Hiển thị trang tương ứng */}
+        {page === "login" && <Login />}
+        {page === "signup" && <SignUp />}
+        {page === "users" && (
+          <>
+            {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
+            {error && <p className="error">{error}</p>}
+            <AddUser onAddUser={handleAddUser} />
+            <UserList
+              users={users}
+              setUsers={setUsers}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+            />
+          </>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 }
 
 export default App;
