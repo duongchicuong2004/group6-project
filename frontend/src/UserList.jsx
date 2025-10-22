@@ -37,46 +37,53 @@ function UserList({ users, setUsers }) {
   };
 
   return (
-    <div>
-      <h3>Danh sách người dùng</h3>
+  <div>
+    <h3>Danh sách người dùng</h3>
 
-      {editingUser && (
-        <div>
-          <h4>Sửa thông tin người dùng</h4>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Tên"
-          />
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData({ ...formData, email: e.target.value })
-            }
-            placeholder="Email"
-          />
-          <button onClick={handleUpdate}>Cập nhật</button>
-          <button onClick={() => setEditingUser(null)}>Hủy</button>
-        </div>
-      )}
+    {editingUser && (
+      <div style={{ marginBottom: "20px" }}>
+        <h4>Sửa thông tin người dùng</h4>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) =>
+            setFormData({ ...formData, name: e.target.value })
+          }
+          placeholder="Tên"
+        />
+        <input
+          type="email"
+          value={formData.email}
+          onChange={(e) =>
+            setFormData({ ...formData, email: e.target.value })
+          }
+          placeholder="Email"
+        />
+        <button onClick={handleUpdate}>Cập nhật</button>
+        <button onClick={() => setEditingUser(null)}>Hủy</button>
+      </div>
+    )}
 
-      <ul>
-        {users.length > 0 ? (
-          users.map((u) => (
-            <li key={u._id}>
-              {u.name} - {u.email}{" "}
+    <ul>
+      {users.length > 0 ? (
+        users.map((u) => (
+          <li key={u._id}>
+            <div className="user-info">
+              {u.name} - {u.email}
+            </div>
+
+            <div className="actions">
               <button onClick={() => handleEdit(u)}>Sửa</button>
               <button onClick={() => handleDelete(u._id)}>Xóa</button>
-            </li>
-          ))
-        ) : (
-          <li>Chưa có người dùng nào</li>
-        )}
-      </ul>
-    </div>
-  );
+            </div>
+          </li>
+        ))
+      ) : (
+        <li>Chưa có người dùng nào</li>
+      )}
+    </ul>
+  </div>
+);
 }
 
 export default UserList;

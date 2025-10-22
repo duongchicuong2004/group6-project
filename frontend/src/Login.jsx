@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./Login.css"; // 👉 thêm CSS (hoặc gộp vào App.css nếu muốn)
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,6 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // ✅ Sửa lại URL cho đúng với backend của bạn
       const res = await fetch("http://localhost:5000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -19,7 +19,6 @@ function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        // ✅ Nếu backend trả token
         if (data.token) {
           setToken(data.token);
           localStorage.setItem("token", data.token);
@@ -36,32 +35,35 @@ function Login() {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
+    <div className="login-container">
       <h2>Đăng nhập</h2>
-      <form onSubmit={handleSubmit}>
+
+      <form className="login-form" onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
-        <br />
+
         <input
           type="password"
           placeholder="Mật khẩu"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
-        <br />
+
         <button type="submit">Đăng nhập</button>
       </form>
 
-      {message && <p>{message}</p>}
+      {message && <p className="login-message">{message}</p>}
 
       {token && (
-        <div>
+        <div className="token-box">
           <h4>JWT Token:</h4>
-          <textarea value={token} readOnly rows="4" cols="60" />
+          <textarea value={token} readOnly rows="4" />
         </div>
       )}
     </div>

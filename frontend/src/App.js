@@ -76,37 +76,41 @@ function App() {
   // ==============================
   // ✅ GIAO DIỆN
   // ==============================
-  return (
-    <div className="app-container">
-      <div className="app-card">
-        <h2>📋 Ứng dụng quản lý người dùng</h2>
+ return (
+  <div className="app-container">
+    <div className="app-card">
+      <h2>📋 Ứng dụng quản lý người dùng</h2>
 
-        {/* 🔹 Thanh điều hướng */}
-        <div style={{ marginBottom: "20px" }}>
-          <button onClick={() => setPage("login")}>Đăng nhập</button>
-          <button onClick={() => setPage("signup")}>Đăng ký</button>
-          <button onClick={() => setPage("users")}>Quản lý người dùng</button>
-        </div>
+      {/* 🔹 Hiển thị trang tương ứng */}
+      {page === "login" && <Login />}
+      {page === "signup" && <SignUp />}
+      {page === "users" && (
+        <>
+          {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
+          {error && <p className="error">{error}</p>}
 
-        {/* 🔹 Hiển thị trang tương ứng */}
-        {page === "login" && <Login />}
-        {page === "signup" && <SignUp />}
-        {page === "users" && (
-          <>
-            {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
-            {error && <p className="error">{error}</p>}
+          {/* 🧾 Form thêm người dùng */}
+          <div className="add-user-container">
             <AddUser onAddUser={handleAddUser} />
-            <UserList
-              users={users}
-              setUsers={setUsers}
-              handleEdit={handleEdit}
-              handleDelete={handleDelete}
-            />
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+          </div>
 
+          {/* 🔹 Thanh điều hướng — chuyển xuống dưới form */}
+          <div className="nav-buttons">
+            <button onClick={() => setPage("login")}>Đăng nhập</button>
+            <button onClick={() => setPage("signup")}>Đăng ký</button>
+            <button onClick={() => setPage("users")}>Quản lý người dùng</button>
+          </div>
+
+          <UserList
+            users={users}
+            setUsers={setUsers}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
+        </>
+      )}
+    </div>
+  </div>
+);
+}
 export default App;

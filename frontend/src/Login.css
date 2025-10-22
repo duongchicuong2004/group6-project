@@ -1,0 +1,72 @@
+/* ==== Login Form ==== */
+.login-container {
+  text-align: center;
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-form {
+  background: #ffffff;
+  padding: 20px 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-form input {
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.login-form input:focus {
+  border-color: #00796b;
+  outline: none;
+}
+
+.login-form button {
+  background-color: #00796b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-form button:hover {
+  background-color: #004d40;
+}
+
+.login-message {
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+.token-box {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 400px;
+  background: #f1f8e9;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.token-box textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: monospace;
+}

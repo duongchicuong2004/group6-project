@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./SignUp.css"; // 👉 thêm dòng này để tách style riêng (hoặc dán vào App.css)
 
 function SignUp() {
   const [name, setName] = useState("");
@@ -9,7 +10,6 @@ function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // ✅ Gọi đúng endpoint (theo server.js bạn có app.use("/auth", authRoutes))
       const res = await fetch("http://localhost:5000/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,9 +32,9 @@ function SignUp() {
   };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
+    <div className="signup-container">
       <h2>Đăng ký</h2>
-      <form onSubmit={handleSubmit}>
+      <form className="signup-form" onSubmit={handleSubmit}>
         <input
           type="text"
           placeholder="Tên"
@@ -42,7 +42,6 @@ function SignUp() {
           onChange={(e) => setName(e.target.value)}
           required
         />
-        <br />
         <input
           type="email"
           placeholder="Email"
@@ -50,7 +49,6 @@ function SignUp() {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <br />
         <input
           type="password"
           placeholder="Mật khẩu"
@@ -58,11 +56,9 @@ function SignUp() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <br />
         <button type="submit">Đăng ký</button>
       </form>
-
-      {message && <p>{message}</p>}
+      {message && <p className="signup-message">{message}</p>}
     </div>
   );
 }
