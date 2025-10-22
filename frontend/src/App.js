@@ -1,28 +1,29 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import AddUser from "./AddUser";
 import UserList from "./UserList";
 import SignUp from "./SignUp";
 import Login from "./Login";
+import Profile from "./Profile";
 import "./App.css";
 
 function App() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState("users"); // trang hiện tại
 
-  // 🔹 Điều hướng giữa các trang
-  const [page, setPage] = useState("users");
-
-  // 🔹 Lấy danh sách người dùng từ backend
+  // 🔹 Lấy danh sách người dùng
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:5000/user");
-      const data = await res.json();
-      setUsers(data);
+      const res = await axios.get("http://localhost:5000/user");
+      console.log("📡 Dữ liệu từ backend:", res.data);
+      setUsers(res.data);
     } catch (err) {
-      console.error("Lỗi khi lấy danh sách:", err);
+      console.error("❌ Lỗi khi tải danh sách:", err);
+      console.log("🔍 Chi tiết:", err.response?.data || err.message);
       setError("Không thể tải danh sách người dùng");
     } finally {
       setLoading(false);
@@ -32,43 +33,34 @@ function App() {
   // 🔹 Thêm người dùng
   const handleAddUser = async (name, email) => {
     try {
-      await fetch("http://localhost:5000/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
-      });
-      fetchUsers();
+      await axios.post("http://localhost:5000/user", { name, email });
+      await fetchUsers();
     } catch (err) {
-      console.error("Lỗi khi thêm người dùng:", err);
+      console.error("❌ Lỗi khi thêm người dùng:", err);
     }
   };
 
-  // 🔹 XÓA user
+  // 🔹 Xóa người dùng
   const handleDelete = async (id) => {
     try {
-      await fetch(`http://localhost:5000/user/${id}`, {
-        method: "DELETE",
-      });
+      await axios.delete(`http://localhost:5000/user/${id}`);
       setUsers(users.filter((u) => u._id !== id));
     } catch (err) {
-      console.error("Lỗi khi xóa người dùng:", err);
+      console.error("❌ Lỗi khi xóa người dùng:", err);
     }
   };
 
-  // 🔹 SỬA user
+  // 🔹 Sửa người dùng
   const handleEdit = async (id, updatedUser) => {
     try {
-      await fetch(`http://localhost:5000/user/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
-      });
-      fetchUsers();
+      await axios.put(`http://localhost:5000/user/${id}`, updatedUser);
+      await fetchUsers();
     } catch (err) {
-      console.error("Lỗi khi sửa người dùng:", err);
+      console.error("❌ Lỗi khi sửa người dùng:", err);
     }
   };
 
+  // 🔹 Tải danh sách khi mở trang
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -76,41 +68,47 @@ function App() {
   // ==============================
   // ✅ GIAO DIỆN
   // ==============================
- return (
-  <div className="app-container">
-    <div className="app-card">
-      <h2>📋 Ứng dụng quản lý người dùng</h2>
+  return (
+    <div className="app-container">
+      <div className="app-card">
+        <h2>📋 Ứng dụng quản lý người dùng</h2>
 
-      {/* 🔹 Hiển thị trang tương ứng */}
-      {page === "login" && <Login />}
-      {page === "signup" && <SignUp />}
-      {page === "users" && (
-        <>
-          {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
-          {error && <p className="error">{error}</p>}
+        {/* 🔹 Thanh điều hướng */}
+        <div className="nav-buttons">
+          <button onClick={() => setPage("login")}>Đăng nhập</button>
+          <button onClick={() => setPage("signup")}>Đăng ký</button>
+          <button onClick={() => setPage("users")}>Quản lý người dùng</button>
+          <button onClick={() => setPage("profile")}>Thông tin cá nhân</button>
+        </div>
 
-          {/* 🧾 Form thêm người dùng */}
-          <div className="add-user-container">
-            <AddUser onAddUser={handleAddUser} />
-          </div>
+        {/* 🔹 Hiển thị trang tương ứng */}
+        {page === "login" && <Login />}
+        {page === "signup" && <SignUp />}
 
-          {/* 🔹 Thanh điều hướng — chuyển xuống dưới form */}
-          <div className="nav-buttons">
-            <button onClick={() => setPage("login")}>Đăng nhập</button>
-            <button onClick={() => setPage("signup")}>Đăng ký</button>
-            <button onClick={() => setPage("users")}>Quản lý người dùng</button>
-          </div>
+        {page === "users" && (
+          <>
+            {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
+            {error && <p className="error">{error}</p>}
 
-          <UserList
-            users={users}
-            setUsers={setUsers}
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
-          />
-        </>
-      )}
+            <div className="add-user-container">
+              <AddUser onAddUser={handleAddUser} />
+            </div>
+
+            <UserList
+              users={users}
+              setUsers={setUsers}
+              fetchUsers={fetchUsers}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+            />
+          </>
+        )}
+
+        {/* ✅ Trang hồ sơ cá nhân */}
+        {page === "profile" && <Profile />}
+      </div>
     </div>
-  </div>
-);
+  );
 }
+
 export default App;

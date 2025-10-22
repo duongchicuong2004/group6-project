@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import "./SignUp.css"; // 👉 thêm dòng này để tách style riêng (hoặc dán vào App.css)
+import "./SignUp.css";
 
 function SignUp() {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState(""); // 🔹 đổi từ name -> username
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -13,14 +13,15 @@ function SignUp() {
       const res = await fetch("http://localhost:5000/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        // 🔹 Gửi đúng tên trường backend yêu cầu
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         setMessage("🎉 Đăng ký thành công!");
-        setName("");
+        setUsername("");
         setEmail("");
         setPassword("");
       } else {
@@ -37,9 +38,9 @@ function SignUp() {
       <form className="signup-form" onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Tên"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Tên đăng nhập"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
         <input
