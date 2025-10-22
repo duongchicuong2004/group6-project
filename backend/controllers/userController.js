@@ -1,33 +1,60 @@
-// controllers/userController.js
-
-// Mảng tạm để lưu người dùng (giả lập database)
-let users = [
-  { id: 1, name: "Nguyen Van A", email: "a@gmail.com" },
-  { id: 2, name: "Tran Thi B", email: "b@gmail.com" }
-];
+import User from "../models/User.js"; // đảm bảo bạn đã có models/User.js
 
 // === GET /users ===
-const getUsers = (req, res) => {
-  res.json(users);
+export const getUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password"); // bỏ password nếu có
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
 };
 
 // === POST /users ===
-const addUser = (req, res) => {
-  const { name, email } = req.body;
+export const addUser = async (req, res) => {
+  try {
+    const { username, full_name, email, phone, address, password } = req.body;
+    if (!username || !email)
+      return res.status(400).json({ message: "Thiếu username hoặc email" });
 
-  if (!name || !email) {
-    return res.status(400).json({ message: "Thiếu name hoặc email" });
+    const newUser = new User({ username, full_name, email, phone, address, password });
+    await newUser.save();
+    res.status(201).json(newUser);
+  } catch (error) {
+    res.status(500).json({ message: "Thêm user thất bại", error: error.message });
   }
-
-  const newUser = {
-    id: users.length + 1,
-    name,
-    email
-  };
-
-  users.push(newUser);
-  res.status(201).json(newUser);
 };
 
-// Xuất module để route gọi được
-module.exports = { getUsers, addUser };
+// === GET /user/profile/:id ===
+export const getProfile = async (req, res) => {
+  try {
+    const userId = req.params.id; // <-- Lấy id từ URL
+    const user = await User.findById(userId).select("-password");
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
+
+// === PUT /user/profile/:id ===
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.params.id; // <-- Lấy id từ URL
+    const { full_name, email, phone, address } = req.body;
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { full_name, email, phone, address },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updated) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    res.json({ message: "Cập nhật thành công", user: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Cập nhật thất bại", error: error.message });
+  }
+};
+
