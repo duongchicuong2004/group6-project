@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Login.css"; // 👉 thêm CSS (hoặc gộp vào App.css nếu muốn)
 
-function Login() {
+function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
@@ -21,7 +21,8 @@ function Login() {
       if (res.ok) {
         if (data.token) {
           setToken(data.token);
-          localStorage.setItem("token", data.token);
+          // inform parent (App) about the new token and user
+          if (typeof onLogin === "function") onLogin(data.token, data.user || null);
           setMessage("✅ Đăng nhập thành công!");
         } else {
           setMessage("⚠️ Đăng nhập thành công nhưng không nhận được token!");

@@ -5,62 +5,53 @@ function UserList({ users, setUsers, fetchUsers }) {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ username: "", email: "" });
 
-  // Khi bấm nút "Sửa"
+  // ✅ Khi bấm "Sửa"
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({ username: user.username, email: user.email });
   };
 
-  // Cập nhật user
-  const handleUpdate = async (e) => {
-    e?.preventDefault();
+  // ✅ Cập nhật user (PUT)
+  const handleUpdate = async () => {
     try {
-      const res = await axios.put(
+      const token = localStorage.getItem("token");
+      await axios.put(
         `http://localhost:5000/user/${editingUser._id}`,
-        formData
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      console.log("Kết quả PUT:", res);
-
-      if (res.status === 200 || res.status === 201) {
-        alert("✅ Cập nhật thành công!");
-        setEditingUser(null);
-
-        try {
-          await fetchUsers(); // tải lại danh sách
-        } catch (err) {
-          console.error("Lỗi khi tải lại danh sách:", err);
-          alert("⚠️ Cập nhật thành công nhưng lỗi khi tải lại danh sách!");
-        }
-
-      } else {
-        alert("⚠️ Lỗi phản hồi từ server!");
-      }
+      alert("✅ Cập nhật thành công!");
+      setEditingUser(null);
+      fetchUsers(); // tải lại danh sách
     } catch (error) {
       console.error("❌ Lỗi khi cập nhật user:", error);
-      alert("❌ Không thể cập nhật user!");
+      alert("Không thể cập nhật user!");
     }
   };
 
-
-  // Xóa user
+  // ✅ Xóa user (DELETE)
   const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc muốn xóa tài khoản này không?")) return;
     try {
-      await axios.delete(`http://localhost:5000/user/${id}`);
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/user/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       alert("🗑️ Xóa thành công!");
       setUsers(users.filter((u) => u._id !== id));
     } catch (error) {
-      console.error("Lỗi khi xóa user:", error);
+      console.error("❌ Lỗi khi xóa user:", error);
+      alert("Không thể xóa user!");
     }
   };
 
   return (
     <div>
-      <h3>Danh sách người dùng</h3>
+      <h3>👑 Danh sách người dùng (Admin)</h3>
 
       {editingUser && (
-        <div style={{ marginBottom: "20px" }}>
-          <h4>Sửa thông tin người dùng</h4>
+        <div className="edit-section">
+          <h4>✏️ Sửa thông tin người dùng</h4>
           <input
             type="text"
             value={formData.username}
@@ -77,27 +68,30 @@ function UserList({ users, setUsers, fetchUsers }) {
             }
             placeholder="Email"
           />
-          {/* ✅ Thêm type="button" để tránh submit form */}
-          <button type="button" onClick={handleUpdate}>Cập nhật</button>
-          <button type="button" onClick={() => setEditingUser(null)}>Hủy</button>
+          <button type="button" onClick={handleUpdate}>
+            Cập nhật
+          </button>
+          <button type="button" onClick={() => setEditingUser(null)}>
+            Hủy
+          </button>
         </div>
       )}
 
-      <ul>
+      <ul className="user-list">
         {users.length > 0 ? (
           users.map((u) => (
-            <li key={u._id}>
-              <div className="user-info">
-                {u.username} - {u.email}
+            <li key={u._id} className="user-item">
+              <div>
+                {u.username} - {u.email} ({u.role})
               </div>
-              <div className="actions">
-                <button type="button" onClick={() => handleEdit(u)}>Sửa</button>
-                <button type="button" onClick={() => handleDelete(u._id)}>Xóa</button>
+              <div>
+                <button onClick={() => handleEdit(u)}>Sửa</button>
+                <button onClick={() => handleDelete(u._id)}>Xóa</button>
               </div>
             </li>
           ))
         ) : (
-          <li>Chưa có người dùng nào</li>
+          <li>Không có người dùng nào.</li>
         )}
       </ul>
     </div>

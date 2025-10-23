@@ -1,101 +1,201 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "./Profile.css";
 
-const Profile = () => {
+function Profile() {
   const [user, setUser] = useState({
     name: "",
     email: "",
-    password: "",
     phone: "",
-    address: ""
+    address: "",
+    password: "",
   });
-
   const [message, setMessage] = useState("");
+  const token = localStorage.getItem("token");
+  // get current user id from localStorage (stored by App after login)
+  let storedUser = null;
+  try {
+    storedUser = JSON.parse(localStorage.getItem("user"));
+  } catch {}
+  const userId = storedUser ? storedUser._id || storedUser.id : null;
 
-  // GỌI API GET /profile để lấy thông tin người dùng
+  // ✅ Lấy thông tin khi vào trang
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/user/profile/68f312b32b9de4655d5e7572")
-      .then((res) => setUser(res.data))
-      .catch((err) => console.error("Lỗi khi lấy profile:", err));
-  }, []);
+    const fetchProfile = async () => {
+      try {
+        if (!userId) {
+          setMessage("⚠️ Không có userId. Hãy đăng nhập lại.");
+          return;
+        }
 
-  // Hàm xử lý khi người dùng nhập dữ liệu
-  const handleChange = (e) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+        const res = await axios.get(`http://localhost:5000/user/profile/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUser(res.data);
+      } catch (err) {
+        console.error(err);
+        setMessage("❌ Không thể tải thông tin cá nhân!");
+      }
+    };
+    fetchProfile();
+  }, [token]);
+
+  // ✅ Cập nhật thông tin
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.put("http://localhost:5000/profile", user, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setMessage("✅ Cập nhật thành công!");
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Lỗi khi cập nhật!");
+    }
   };
 
-  // GỌI API PUT /profile để cập nhật thông tin
-  const handleUpdate = (e) => {
-    e.preventDefault();
-    axios
-      .put("http://localhost:5000/user/profile/68f312b32b9de4655d5e7572", user)
-      .then((res) => setMessage("Cập nhật thành công!"))
-      .catch((err) => setMessage("Lỗi khi cập nhật!"));
+  // 🔒 Đăng xuất
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
   };
 
   return (
-    <div className="profile-container">
-      <h2>Thông tin cá nhân</h2>
+    <div style={{ backgroundColor: "#e8f5ee", minHeight: "100vh", padding: "40px 0" }}>
+      <div style={cardWrapper}>
+        <div style={card}>
+          <h2 style={cardTitle}>Thông tin cá nhân</h2>
 
-      <form className="profile-form" onSubmit={handleUpdate}>
-        <div>
-          <label>Họ tên:</label>
-          <input
-            type="text"
-            name="name"
-            value={user.name}
-            onChange={handleChange}
-          />
+          <form onSubmit={handleUpdate} style={formStyle}>
+            <label style={labelStyle}>
+              Họ tên
+              <input
+                type="text"
+                value={user.name}
+                onChange={(e) => setUser({ ...user, name: e.target.value })}
+                style={inputStyle}
+                placeholder="Họ và tên"
+              />
+            </label>
+
+            <label style={labelStyle}>
+              Email
+              <input
+                type="email"
+                value={user.email}
+                onChange={(e) => setUser({ ...user, email: e.target.value })}
+                style={inputStyle}
+                placeholder="example@mail.com"
+              />
+            </label>
+
+            <label style={labelStyle}>
+              Số điện thoại
+              <input
+                type="text"
+                value={user.phone}
+                onChange={(e) => setUser({ ...user, phone: e.target.value })}
+                style={inputStyle}
+                placeholder="0123 456 789"
+              />
+            </label>
+
+            <label style={labelStyle}>
+              Địa chỉ
+              <input
+                type="text"
+                value={user.address}
+                onChange={(e) => setUser({ ...user, address: e.target.value })}
+                style={inputStyle}
+                placeholder="Địa chỉ"
+              />
+            </label>
+
+            <label style={labelStyle}>
+              Mật khẩu mới (nếu đổi)
+              <input
+                type="password"
+                value={user.password}
+                onChange={(e) => setUser({ ...user, password: e.target.value })}
+                style={inputStyle}
+                placeholder="********"
+              />
+            </label>
+
+            <div style={actionsRow}>
+              <button type="submit" style={saveBtn}>
+                Cập nhật
+              </button>
+
+              <button type="button" onClick={handleLogout} style={logoutBtn}>
+                Đăng xuất
+              </button>
+            </div>
+          </form>
+
+          {message && (
+            <p style={{ marginTop: "12px", color: message.startsWith("✅") ? "green" : "#d32f2f" }}>
+              {message}
+            </p>
+          )}
         </div>
-
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={user.email}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>Số điện thoại:</label>
-          <input
-            type="text"
-            name="phone"
-            value={user.phone}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>Địa chỉ:</label>
-          <input
-            type="text"
-            name="address"
-            value={user.address}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label>Mật khẩu:</label>
-          <input
-            type="password"
-            name="password"
-            value={user.password}
-            onChange={handleChange}
-          />
-        </div>
-
-        <button type="submit">Cập nhật</button>
-      </form>
-
-      {message && <p className="profile-message">{message}</p>}
+      </div>
     </div>
   );
+}
+
+// (old small styles removed; new styles are defined below)
+
+// --- Inline styles for Profile component ---
+const cardWrapper = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "flex-start",
+};
+
+const card = {
+  width: "min(680px, 92%)",
+  background: "#ffffff",
+  borderRadius: "12px",
+  padding: "28px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+};
+
+const cardTitle = { color: "#00695c", margin: "0 0 14px 0" };
+
+const formStyle = { display: "flex", flexDirection: "column", gap: "10px" };
+
+const labelStyle = { display: "flex", flexDirection: "column", fontSize: "14px", color: "#333" };
+
+const inputStyle = {
+  padding: "10px 12px",
+  borderRadius: "8px",
+  border: "1px solid #ccd",
+  marginTop: "6px",
+  fontSize: "14px",
+};
+
+const actionsRow = { display: "flex", gap: "12px", marginTop: "8px" };
+
+const saveBtn = {
+  backgroundColor: "#00796b",
+  color: "white",
+  border: "none",
+  padding: "10px 16px",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const logoutBtn = {
+  backgroundColor: "#d32f2f",
+  color: "white",
+  border: "none",
+  padding: "10px 16px",
+  borderRadius: "8px",
+  cursor: "pointer",
 };
 
 export default Profile;
