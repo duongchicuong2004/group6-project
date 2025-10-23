@@ -43,16 +43,41 @@ function Profile() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.put("http://localhost:5000/profile", user, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      if (!userId) {
+        setMessage("⚠️ Không có userId. Hãy đăng nhập lại.");
+        return;
+      }
+
+      // prepare payload without password if empty
+      const updateData = {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+      };
+      if (user.password && user.password.trim() !== "") {
+        updateData.password = user.password;
+      }
+
+      const res = await axios.put(
+        `http://localhost:5000/user/profile/${userId}`,
+        updateData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       setMessage("✅ Cập nhật thành công!");
+      // clear password field after success
+      setUser((prev) => ({ ...prev, password: "" }));
     } catch (err) {
       console.error(err);
-      setMessage("❌ Lỗi khi cập nhật!");
+      // try to surface server message if available
+      const detail = err.response?.data?.message || err.message;
+      setMessage(`❌ Lỗi khi cập nhật: ${detail}`);
     }
   };
 
@@ -128,10 +153,6 @@ function Profile() {
             <div style={actionsRow}>
               <button type="submit" style={saveBtn}>
                 Cập nhật
-              </button>
-
-              <button type="button" onClick={handleLogout} style={logoutBtn}>
-                Đăng xuất
               </button>
             </div>
           </form>
