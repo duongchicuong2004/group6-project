@@ -11,28 +11,29 @@ function Profile() {
   });
   const [message, setMessage] = useState("");
   const token = localStorage.getItem("token");
-  // get current user id from localStorage (stored by App after login)
-  let storedUser = null;
-  try {
-    storedUser = JSON.parse(localStorage.getItem("user"));
-  } catch {}
-  const userId = storedUser ? storedUser._id || storedUser.id : null;
-
-  // ✅ Lấy thông tin khi vào trang
+  // ✅ Lấy thông tin khi vào trang — use token-authenticated /user/profile endpoint
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        if (!userId) {
-          setMessage("⚠️ Không có userId. Hãy đăng nhập lại.");
+        if (!token) {
+          setMessage("⚠️ Vui lòng đăng nhập để xem thông tin cá nhân.");
           return;
         }
 
-        const res = await axios.get(`http://localhost:5000/user/profile/${userId}`, {
+        const res = await axios.get(`http://localhost:5000/user/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setUser(res.data);
+        // Backend returns the user object (without password) and uses `full_name`
+        const profile = res.data || {};
+        setUser((prev) => ({
+          ...prev,
+          name: profile.full_name || profile.name || profile.username || "",
+          email: profile.email || "",
+          phone: profile.phone || "",
+          address: profile.address || "",
+        }));
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching profile:', err);
         setMessage("❌ Không thể tải thông tin cá nhân!");
       }
     };
@@ -42,43 +43,40 @@ function Profile() {
   // ✅ Cập nhật thông tin
   const handleUpdate = async (e) => {
     e.preventDefault();
-    try {
-      if (!userId) {
-        setMessage("⚠️ Không có userId. Hãy đăng nhập lại.");
-        return;
-      }
+      try {
+        if (!token) {
+          setMessage("⚠️ Vui lòng đăng nhập để cập nhật thông tin.");
+          return;
+        }
 
-      // prepare payload without password if empty
-      const updateData = {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-      };
-      if (user.password && user.password.trim() !== "") {
-        updateData.password = user.password;
-      }
+        // prepare payload without password if empty
+        // Backend expects `full_name` field; map local `name` to `full_name`
+        const updateData = {
+          full_name: user.name,
+          email: user.email,
+          phone: user.phone,
+          address: user.address,
+        };
+        if (user.password && user.password.trim() !== "") {
+          updateData.password = user.password;
+        }
 
-      const res = await axios.put(
-        `http://localhost:5000/user/profile/${userId}`,
-        updateData,
-        {
+        const res = await axios.put(`http://localhost:5000/user/profile`, updateData, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
+        });
 
-      setMessage("✅ Cập nhật thành công!");
-      // clear password field after success
-      setUser((prev) => ({ ...prev, password: "" }));
-    } catch (err) {
-      console.error(err);
-      // try to surface server message if available
-      const detail = err.response?.data?.message || err.message;
-      setMessage(`❌ Lỗi khi cập nhật: ${detail}`);
-    }
+        setMessage("✅ Cập nhật thành công!");
+        // clear password field after success
+        setUser((prev) => ({ ...prev, password: "" }));
+      } catch (err) {
+        console.error(err);
+        // try to surface server message if available
+        const detail = err.response?.data?.message || err.message;
+        setMessage(`❌ Lỗi khi cập nhật: ${detail}`);
+      }
   };
 
   // 🔒 Đăng xuất

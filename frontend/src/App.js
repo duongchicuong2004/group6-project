@@ -45,7 +45,10 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-  const res = await axios.get("http://localhost:5000/user", axiosConfig);
+      console.log('Fetching users with token:', token);
+      const res = await axios.get("http://localhost:5000/user", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       console.log("📡 Dữ liệu từ backend:", res.data);
       setUsers(res.data);
     } catch (err) {
