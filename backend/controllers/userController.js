@@ -14,16 +14,15 @@ export const getUsers = async (req, res) => {
 // === POST /users (Đăng ký) ===
 export const addUser = async (req, res) => {
   try {
-    const { username, full_name, email, phone, address, password } = req.body;
-    if (!username || !email || !password)
-      return res.status(400).json({ message: "Thiếu username, email hoặc password" });
+    const { name, email, phone, address, password } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ message: "Thiếu name, email hoặc password" });
 
     // 🔒 Mã hoá mật khẩu trước khi lưu
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-      username,
-      full_name,
+      name,
       email,
       phone,
       address,
@@ -75,10 +74,10 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.params.id;
-    const { username, full_name, email, phone, address, password } = req.body;
+    const { name, email, phone, address, password } = req.body;
 
     // Tạo object lưu thông tin cần cập nhật
-    const updateData = { username, full_name, email, phone, address };
+    const updateData = { name, email, phone, address };
 
     // 🔒 Nếu người dùng đổi mật khẩu → mã hóa lại
     if (password && password.trim() !== "") {
@@ -99,4 +98,3 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ message: "Cập nhật thất bại", error: error.message });
   }
 };
-
