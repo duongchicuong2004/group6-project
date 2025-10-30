@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import User from "../models/User.js";
 
 // ✅ Lấy thông tin cá nhân
@@ -42,10 +43,10 @@ export const updateProfile = async (req, res) => {
 // ✅ Lấy tất cả người dùng (Admin)
 export const getAllUsers = async (req, res) => {
   try {
-    // Kiểm tra quyền Admin
-    if (!req.user || req.user.role !== 'Admin') {
-      return res.status(403).json({ 
-        message: "Bạn không có quyền truy cập danh sách người dùng!"
+    // Kiểm tra quyền Admin (case-insensitive)
+    if (!req.user || String(req.user.role).toLowerCase() !== 'admin') {
+      return res.status(403).json({
+        message: "Bạn không có quyền truy cập danh sách người dùng!",
       });
     }
 
@@ -58,11 +59,76 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+// ✅ Tạo user mới (Admin)
+export const createUser = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Bạn không có quyền tạo user!" });
+    }
+
+    const { name, username, full_name, email, password, role } = req.body;
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Email đã tồn tại!" });
+
+    const userNameToUse = username || (email ? email.split("@")[0] : name || "user");
+    const hashed = await bcrypt.hash(password || "123456", 10);
+
+    const newUser = new User({
+      username: userNameToUse,
+      full_name: full_name || name || "",
+      email,
+      password: hashed,
+      role: role || "User",
+    });
+
+    await newUser.save();
+    const { password: _, ...userData } = newUser.toObject();
+    res.status(201).json({ message: "Tạo user thành công!", user: userData });
+  } catch (error) {
+    console.error("Error in createUser:", error);
+    res.status(500).json({ message: "Không thể tạo user!" });
+  }
+};
+
+// ✅ Cập nhật user bởi Admin (PUT /user/:id)
+export const updateUserByAdmin = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Bạn không có quyền cập nhật user!" });
+    }
+
+    const userId = req.params.id;
+    const { username, full_name, email, phone, address, password, role } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng!" });
+
+    user.username = username || user.username;
+    user.full_name = full_name || user.full_name;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    user.address = address || user.address;
+    user.role = role || user.role;
+
+    if (password && password.trim() !== "") {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+    const { password: _, ...userData } = user.toObject();
+    res.status(200).json({ message: "Cập nhật thành công!", user: userData });
+  } catch (error) {
+    console.error("Error in updateUserByAdmin:", error);
+    res.status(500).json({ message: "Không thể cập nhật user!" });
+  }
+};
+
 // ✅ Xóa người dùng (Admin only)
 export const deleteUser = async (req, res) => {
   try {
     // Kiểm tra quyền Admin
-    if (!req.user || req.user.role !== 'Admin') {
+    if (!req.user || String(req.user.role).toLowerCase() !== 'admin') {
       return res.status(403).json({ message: "Bạn không có quyền xóa người dùng!" });
     }
 

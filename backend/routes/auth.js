@@ -8,9 +8,36 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import User from "../models/User.js";
+// 📁 routes/auth.js
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Đọc file .env từ thư mục backend
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const router = express.Router();
 const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret_key";
+
+/* ================================
+   ☁️ Cấu hình Cloudinary
+================================ */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+console.log("🔧 Kiểm tra Cloudinary ENV:");
+console.log({
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? "✅ Có" : "❌ Thiếu",
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "✅ Có" : "❌ Thiếu",
+});
+// Cấu hình multer cho upload ảnh
+const upload = multer({ dest: "uploads/" });
 
 /* ================================
    🧾 Đăng ký (Signup)
@@ -38,9 +65,9 @@ router.post("/signup", async (req, res) => {
     });
 
     await newUser.save();
-
     res.status(201).json({ message: "Đăng ký thành công!", user: newUser });
   } catch (error) {
+    console.error("❌ Lỗi đăng ký:", error);
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
 });
@@ -51,7 +78,6 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "Email hoặc mật khẩu không đúng!" });
@@ -67,22 +93,11 @@ router.post("/login", async (req, res) => {
     );
 
     const { password: _, ...userData } = user.toObject();
-
-    res.status(200).json({
-      message: "Đăng nhập thành công!",
-      token,
-      user: userData,
-    });
+    res.status(200).json({ message: "Đăng nhập thành công!", token, user: userData });
   } catch (error) {
+    console.error("❌ Lỗi đăng nhập:", error);
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
-});
-
-/* ================================
-   🚪 Đăng xuất (client tự xóa token)
-================================ */
-router.post("/logout", (req, res) => {
-  res.status(200).json({ message: "Đăng xuất thành công (client xóa token)!" });
 });
 
 /* ================================
@@ -92,7 +107,6 @@ router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
-
     if (!user)
       return res.status(404).json({ message: "Email không tồn tại trong hệ thống!" });
 
@@ -101,11 +115,23 @@ router.post("/forgot-password", async (req, res) => {
     user.tokenExpire = Date.now() + 60 * 60 * 1000; // 1 giờ
     await user.save();
 
-    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+    const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+    const resetLink = `${CLIENT_URL}/reset-password?token=${resetToken}`;
 
-    // Cấu hình gửi email (dùng Gmail)
+    console.log("📧 Reset link:", resetLink);
+
+    if (process.env.NODE_ENV !== "production") {
+      return res.json({
+        message: "Đường dẫn đặt lại mật khẩu (chạy DEV):",
+        resetLink,
+      });
+    }
+
+    // Gửi email thật (nếu cấu hình)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -116,17 +142,15 @@ router.post("/forgot-password", async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Đặt lại mật khẩu",
-      html: `
-        <h3>Xin chào ${user.full_name || user.username},</h3>
-        <p>Bạn vừa yêu cầu đặt lại mật khẩu. Hãy nhấn vào liên kết sau để đặt lại mật khẩu:</p>
-        <a href="${resetLink}">${resetLink}</a>
-        <p><i>Liên kết có hiệu lực trong 1 giờ.</i></p>
-      `,
+      html: `<p>Nhấn vào liên kết để đặt lại mật khẩu:</p>
+             <a href="${resetLink}" target="_blank">${resetLink}</a>
+             <p><i>Liên kết có hiệu lực trong 1 giờ.</i></p>`,
     });
 
-    res.json({ message: "Đã gửi email đặt lại mật khẩu!" });
+    res.json({ message: "Email đặt lại mật khẩu đã được gửi!" });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi server!", error: error.message });
+    console.error("❌ Lỗi gửi email:", error);
+    res.status(500).json({ message: "Lỗi khi gửi email!", error: error.message });
   }
 });
 
@@ -136,7 +160,6 @@ router.post("/forgot-password", async (req, res) => {
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, password } = req.body;
-
     const user = await User.findOne({
       resetToken: token,
       tokenExpire: { $gt: Date.now() },
@@ -152,24 +175,22 @@ router.post("/reset-password", async (req, res) => {
 
     res.json({ message: "Đặt lại mật khẩu thành công!" });
   } catch (error) {
+    console.error("❌ Lỗi reset mật khẩu:", error);
     res.status(500).json({ message: "Lỗi server!", error: error.message });
   }
 });
 
 /* ================================
-   🖼️ Upload Avatar (Cloudinary)
+   ☁️ Upload Avatar
 ================================ */
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_KEY,
-  api_secret: process.env.CLOUD_SECRET,
-});
-
-const upload = multer({ dest: "uploads/" });
-
 router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
   try {
+    console.log("📥 req.body.email:", req.body.email); // 👈 Dòng mới thêm
+
     const { email } = req.body;
+    if (!req.file)
+      return res.status(400).json({ message: "Không có file được tải lên!" });
+
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "Không tìm thấy người dùng!" });
@@ -180,8 +201,7 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
       overwrite: true,
     });
 
-    fs.unlinkSync(req.file.path); // Xóa file tạm
-
+    fs.unlinkSync(req.file.path);
     user.avatarUrl = uploadResult.secure_url;
     await user.save();
 
@@ -190,7 +210,10 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
       avatarUrl: uploadResult.secure_url,
     });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi upload avatar!", error: error.message });
+    console.error("❌ Lỗi upload avatar:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi upload avatar!", error: error.message });
   }
 });
 

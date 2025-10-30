@@ -8,10 +8,14 @@ function Profile() {
     phone: "",
     address: "",
     password: "",
+    avatarUrl: "", // ✅ thêm trường ảnh
   });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState(null); // ✅ hiển thị trước khi upload
   const [message, setMessage] = useState("");
   const token = localStorage.getItem("token");
-  // ✅ Lấy thông tin khi vào trang — use token-authenticated /user/profile endpoint
+
+  // ✅ Lấy thông tin khi vào trang
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -20,10 +24,10 @@ function Profile() {
           return;
         }
 
-        const res = await axios.get(`http://localhost:5000/user/profile`, {
+        const res = await axios.get("http://localhost:5000/user/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Backend returns the user object (without password) and uses `full_name`
+
         const profile = res.data || {};
         setUser((prev) => ({
           ...prev,
@@ -31,9 +35,10 @@ function Profile() {
           email: profile.email || "",
           phone: profile.phone || "",
           address: profile.address || "",
+          avatarUrl: profile.avatarUrl || "", // ✅ lưu link ảnh
         }));
       } catch (err) {
-        console.error('Error fetching profile:', err);
+        console.error("Error fetching profile:", err);
         setMessage("❌ Không thể tải thông tin cá nhân!");
       }
     };
@@ -43,40 +48,73 @@ function Profile() {
   // ✅ Cập nhật thông tin
   const handleUpdate = async (e) => {
     e.preventDefault();
-      try {
-        if (!token) {
-          setMessage("⚠️ Vui lòng đăng nhập để cập nhật thông tin.");
-          return;
-        }
-
-        // prepare payload without password if empty
-        // Backend expects `full_name` field; map local `name` to `full_name`
-        const updateData = {
-          full_name: user.name,
-          email: user.email,
-          phone: user.phone,
-          address: user.address,
-        };
-        if (user.password && user.password.trim() !== "") {
-          updateData.password = user.password;
-        }
-
-        const res = await axios.put(`http://localhost:5000/user/profile`, updateData, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setMessage("✅ Cập nhật thành công!");
-        // clear password field after success
-        setUser((prev) => ({ ...prev, password: "" }));
-      } catch (err) {
-        console.error(err);
-        // try to surface server message if available
-        const detail = err.response?.data?.message || err.message;
-        setMessage(`❌ Lỗi khi cập nhật: ${detail}`);
+    try {
+      if (!token) {
+        setMessage("⚠️ Vui lòng đăng nhập để cập nhật thông tin.");
+        return;
       }
+
+      const updateData = {
+        full_name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+      };
+      if (user.password && user.password.trim() !== "") {
+        updateData.password = user.password;
+      }
+
+      await axios.put("http://localhost:5000/user/profile", updateData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setMessage("✅ Cập nhật thành công!");
+      setUser((prev) => ({ ...prev, password: "" }));
+    } catch (err) {
+      console.error(err);
+      const detail = err.response?.data?.message || err.message;
+      setMessage(`❌ Lỗi khi cập nhật: ${detail}`);
+    }
+  };
+
+  // ✅ Upload avatar
+  const handleUploadAvatar = async () => {
+    if (!selectedFile) {
+      setMessage("⚠️ Hãy chọn ảnh trước khi upload!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("avatar", selectedFile);
+    formData.append("email", user.email);
+
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/auth/upload-avatar",
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setUser((prev) => ({ ...prev, avatarUrl: res.data.avatarUrl }));
+      setPreview(null);
+      setSelectedFile(null);
+      setMessage("✅ Cập nhật avatar thành công!");
+    } catch (err) {
+      console.error("❌ Lỗi upload avatar:", err);
+      setMessage("❌ Upload thất bại!");
+    }
+  };
+
+  // ✅ Khi chọn ảnh thì hiển thị preview
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
+    }
   };
 
   // 🔒 Đăng xuất
@@ -91,6 +129,39 @@ function Profile() {
       <div style={cardWrapper}>
         <div style={card}>
           <h2 style={cardTitle}>Thông tin cá nhân</h2>
+
+          {/* ✅ Hiển thị ảnh avatar và upload */}
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <img
+              src={preview || user.avatarUrl || "https://via.placeholder.com/120"}
+              alt="Avatar"
+              style={{
+                width: "120px",
+                height: "120px",
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "2px solid #00796b",
+              }}
+            />
+            <div style={{ marginTop: "10px" }}>
+              <input type="file" accept="image/*" onChange={handleFileChange} />
+              <button
+                type="button"
+                onClick={handleUploadAvatar}
+                style={{
+                  marginLeft: "10px",
+                  backgroundColor: "#009688",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Upload Avatar
+              </button>
+            </div>
+          </div>
 
           <form onSubmit={handleUpdate} style={formStyle}>
             <label style={labelStyle}>
@@ -152,6 +223,9 @@ function Profile() {
               <button type="submit" style={saveBtn}>
                 Cập nhật
               </button>
+              <button type="button" style={logoutBtn} onClick={handleLogout}>
+                Đăng xuất
+              </button>
             </div>
           </form>
 
@@ -166,9 +240,7 @@ function Profile() {
   );
 }
 
-// (old small styles removed; new styles are defined below)
-
-// --- Inline styles for Profile component ---
+// --- Inline styles ---
 const cardWrapper = {
   display: "flex",
   justifyContent: "center",

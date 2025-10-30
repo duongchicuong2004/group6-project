@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-function UserList({ users, setUsers, fetchUsers }) {
+function UserList({ users = [], setUsers, fetchUsers }) {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ username: "", email: "" });
 
   // ✅ Khi bấm "Sửa"
   const handleEdit = (user) => {
     setEditingUser(user);
-    setFormData({ username: user.username, email: user.email });
+    setFormData({ username: user.username || "", email: user.email || "" });
   };
 
   // ✅ Cập nhật user (PUT)
@@ -22,7 +22,7 @@ function UserList({ users, setUsers, fetchUsers }) {
       );
       alert("✅ Cập nhật thành công!");
       setEditingUser(null);
-      fetchUsers(); // tải lại danh sách
+      if (typeof fetchUsers === "function") await fetchUsers();
     } catch (error) {
       console.error("❌ Lỗi khi cập nhật user:", error);
       alert("Không thể cập nhật user!");
@@ -38,12 +38,19 @@ function UserList({ users, setUsers, fetchUsers }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("🗑️ Xóa thành công!");
-      setUsers(users.filter((u) => u._id !== id));
+      // reload from server to ensure UI matches backend
+      if (typeof fetchUsers === "function") await fetchUsers();
+      else setUsers(users.filter((u) => u._id !== id));
     } catch (error) {
       console.error("❌ Lỗi khi xóa user:", error);
-      alert("Không thể xóa user!");
+      alert("Không thể xóa người dùng!");
     }
   };
+
+  // debug: log incoming users prop
+  useEffect(() => {
+    console.log("UserList received users:", users);
+  }, [users]);
 
   return (
     <div>
@@ -78,7 +85,7 @@ function UserList({ users, setUsers, fetchUsers }) {
       )}
 
       <ul className="user-list">
-        {users.length > 0 ? (
+        {Array.isArray(users) && users.length > 0 ? (
           users.map((u) => (
             <li key={u._id} className="user-item">
               <div>

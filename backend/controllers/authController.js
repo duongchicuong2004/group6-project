@@ -6,7 +6,10 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import User from "../models/User.js";
 
-const SECRET_KEY = "group6-secret";
+// =======================
+// ⚙️ Cấu hình chung
+// =======================
+const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 // =======================
 // 📌 Đăng ký (Sign Up)
@@ -15,15 +18,12 @@ export const signup = async (req, res) => {
   try {
     const { username, full_name, email, password } = req.body;
 
-    // Kiểm tra email tồn tại
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "Email đã tồn tại!" });
 
-    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Tạo user mới
     const newUser = new User({
       username,
       full_name,
@@ -82,15 +82,25 @@ export const forgotPassword = async (req, res) => {
     if (!user)
       return res.status(404).json({ message: "Email không tồn tại trong hệ thống" });
 
-    // Tạo token reset ngẫu nhiên
+    // Tạo token ngẫu nhiên
     const token = crypto.randomBytes(32).toString("hex");
     user.resetToken = token;
     user.tokenExpire = Date.now() + 60 * 60 * 1000; // 1 giờ
     await user.save();
 
-    // Cấu hình gửi email
+    // Kiểm tra thông tin cấu hình Gmail
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(500).json({
+        message:
+          "Thiếu cấu hình email! Hãy thêm EMAIL_USER và EMAIL_PASS trong file .env",
+      });
+    }
+
+    // Cấu hình SMTP Gmail
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -99,19 +109,22 @@ export const forgotPassword = async (req, res) => {
 
     const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
+    // Gửi email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: `"Hệ thống Group 6" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Yêu cầu đặt lại mật khẩu",
       html: `
         <h3>Xin chào ${user.full_name || user.username},</h3>
         <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
         <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu (có hiệu lực trong 1 giờ):</p>
-        <a href="${resetLink}">${resetLink}</a>
+        <a href="${resetLink}" target="_blank">${resetLink}</a>
+        <br><br>
+        <p>Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email này.</p>
       `,
     });
 
-    res.json({ message: "Đã gửi email đặt lại mật khẩu!" });
+    res.json({ message: "✅ Đã gửi email đặt lại mật khẩu!" });
   } catch (err) {
     res.status(500).json({ message: "Lỗi server: " + err.message });
   }
@@ -129,14 +142,16 @@ export const resetPassword = async (req, res) => {
       tokenExpire: { $gt: Date.now() },
     });
     if (!user)
-      return res.status(400).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+      return res
+        .status(400)
+        .json({ message: "Token không hợp lệ hoặc đã hết hạn!" });
 
     user.password = await bcrypt.hash(password, 10);
     user.resetToken = null;
     user.tokenExpire = null;
     await user.save();
 
-    res.json({ message: "Đặt lại mật khẩu thành công" });
+    res.json({ message: "✅ Đặt lại mật khẩu thành công!" });
   } catch (err) {
     res.status(500).json({ message: "Lỗi server: " + err.message });
   }
@@ -156,11 +171,13 @@ export const uploadAvatarMiddleware = upload.single("avatar");
 
 export const uploadAvatar = async (req, res) => {
   try {
-    const file = req.file.path;
+    const file = req.file?.path;
     const { email } = req.body;
 
+    if (!file) return res.status(400).json({ message: "Không có file được tải lên!" });
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng!" });
 
     const result = await cloudinary.uploader.upload(file, {
       folder: "avatars",
@@ -172,7 +189,7 @@ export const uploadAvatar = async (req, res) => {
     await user.save();
 
     res.json({
-      message: "Cập nhật avatar thành công!",
+      message: "✅ Cập nhật avatar thành công!",
       avatarUrl: result.secure_url,
     });
   } catch (err) {

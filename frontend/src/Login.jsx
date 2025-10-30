@@ -21,7 +21,12 @@ function Login({ onLogin }) {
       if (res.ok) {
         if (data.token) {
           setToken(data.token);
-          // inform parent (App) about the new token and user
+
+          // 🧩 Lưu email & token để UploadAvatar dùng lại
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("email", email);
+
+          // Gọi hàm cha (nếu có)
           if (typeof onLogin === "function") onLogin(data.token, data.user || null);
           setMessage("✅ Đăng nhập thành công!");
         } else {
@@ -30,6 +35,7 @@ function Login({ onLogin }) {
       } else {
         setMessage(`⚠️ ${data.message || "Sai thông tin đăng nhập"}`);
       }
+
     } catch (err) {
       setMessage("❌ Lỗi kết nối server");
     }

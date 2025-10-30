@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import AddUser from "./AddUser";
 import UserList from "./UserList";
 import SignUp from "./SignUp";
 import Login from "./Login";
 import Profile from "./Profile";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
+import UploadAvatar from "./UploadAvatar";
 import "./App.css";
 
 function App() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState("users"); // Trang mặc định là danh sách người dùng (Admin)
-
-  // 🔹 Token state (keeps token and re-renders when login happens)
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  // currentUser stores the logged-in user's info (from /auth/login response)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const raw = localStorage.getItem("user");
@@ -25,114 +25,60 @@ function App() {
     }
   });
 
-  // 🔹 Config header (if token available)
   const axiosConfig = token
     ? { headers: { Authorization: `Bearer ${token}` } }
     : {};
 
-  // computed helper: is current user an Admin? (case-insensitive)
-  const isAdmin = !!(
+  const isAdmin =
     token &&
-    currentUser &&
-    currentUser.role &&
-    currentUser.role.toString().toLowerCase() === "admin"
-  );
+    currentUser?.role?.toLowerCase() === "admin";
 
-  // ===============================
-  // 📡 API: Lấy danh sách người dùng
-  // ===============================
+  const navigate = useNavigate();
+
+  // ======== API: Lấy danh sách người dùng ========
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching users with token:', token);
-      const res = await axios.get("http://localhost:5000/user", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log("📡 Dữ liệu từ backend:", res.data);
+      const res = await axios.get("http://localhost:5000/user", axiosConfig);
       setUsers(res.data);
     } catch (err) {
       console.error("❌ Lỗi khi tải danh sách:", err);
-      console.log("🔍 Chi tiết:", err.response?.data || err.message);
       setError("Không thể tải danh sách người dùng!");
     } finally {
       setLoading(false);
     }
   };
 
-  // ===============================
-  // ➕ Thêm người dùng (nếu có quyền)
-  // ===============================
-  const handleAddUser = async (name, email) => {
-    try {
-  await axios.post("http://localhost:5000/user", { name, email }, axiosConfig);
-      await fetchUsers();
-    } catch (err) {
-      console.error("❌ Lỗi khi thêm người dùng:", err);
-      alert("Không thể thêm người dùng!");
-    }
-  };
-
-  // ===============================
-  // 🗑️ Xóa người dùng
-  // ===============================
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa người dùng này không?")) return;
-    try {
-      await axios.delete(`http://localhost:5000/user/${id}`, axiosConfig);
-      alert("🗑️ Xóa thành công!");
-      setUsers(users.filter((u) => u._id !== id));
-    } catch (err) {
-      console.error("❌ Lỗi khi xóa người dùng:", err);
-      alert("Không thể xóa người dùng (có thể do thiếu quyền)!");
-    }
-  };
-
-  // ===============================
-  // ✏️ Sửa thông tin người dùng
-  // ===============================
-  const handleEdit = async (id, updatedUser) => {
-    try {
-      await axios.put(`http://localhost:5000/user/${id}`, updatedUser, axiosConfig);
-      alert("✅ Cập nhật thành công!");
-      await fetchUsers();
-    } catch (err) {
-      console.error("❌ Lỗi khi sửa người dùng:", err);
-      alert("Không thể sửa người dùng!");
-    }
-  };
-
-  // 🔹 Tải danh sách khi mở trang **chỉ nếu** là Admin (or if token+user are already present)
   useEffect(() => {
-    if (page === "users" && isAdmin) {
-      fetchUsers();
-    }
-  }, [page, isAdmin]);
+    if (isAdmin) fetchUsers();
+  }, [isAdmin]);
 
-  // ===============================
-  // ✅ Giao diện chính
-  // ===============================
+  const handleLogout = () => {
+    setToken("");
+    setCurrentUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  // ======== Giao diện ========
   return (
     <div className="app-container">
       <div className="app-card">
-        <h2>📋 Trang Quản Lý Người Dùng (Admin)</h2>
+        <h2>📋 Trang Quản Lý Người Dùng</h2>
 
-        {/* 🔹 Thanh điều hướng */}
+        {/* 🔹 Menu điều hướng */}
         <div className="nav-buttons">
-          <button onClick={() => setPage("login")}>Đăng nhập</button>
-          <button onClick={() => setPage("signup")}>Đăng ký</button>
-          <button onClick={() => setPage("users")}>Quản lý người dùng</button>
-          <button onClick={() => setPage("profile")}>Thông tin cá nhân</button>
+          <Link to="/login"><button>Đăng nhập</button></Link>
+          <Link to="/signup"><button>Đăng ký</button></Link>
+          <Link to="/forgot-password"><button>Quên mật khẩu</button></Link>
+          <Link to="/users"><button>Quản lý người dùng</button></Link>
+          <Link to="/profile"><button>Thông tin cá nhân</button></Link>
+          <Link to="/upload-avatar"><button>Upload Avatar</button></Link>
           {token && (
             <button
-              onClick={() => {
-                // clear auth and return to login
-                setToken("");
-                setCurrentUser(null);
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-                setPage("login");
-              }}
+              onClick={handleLogout}
               style={{ marginLeft: "8px", backgroundColor: "#d32f2f", color: "white" }}
             >
               Đăng xuất
@@ -140,61 +86,60 @@ function App() {
           )}
         </div>
 
-        {/* 🔹 Hiển thị từng trang */}
-        {page === "login" && (
-          <Login
-            onLogin={(tkn, user) => {
-              // store token and user in App state and localStorage
-              setToken(tkn);
-              setCurrentUser(user || null);
-              localStorage.setItem("token", tkn);
-              if (user) localStorage.setItem("user", JSON.stringify(user));
-
-              // route depending on role
-              if (user && user.role === "Admin") {
-                setPage("users");
-                // fetchUsers will be triggered by the useEffect watching `isAdmin` and `page`
-              } else {
-                setPage("profile");
-              }
-            }}
+        {/* 🔹 Các Route hiển thị theo URL */}
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <Login
+                onLogin={(tkn, user) => {
+                  setToken(tkn);
+                  setCurrentUser(user || null);
+                  localStorage.setItem("token", tkn);
+                  if (user) localStorage.setItem("user", JSON.stringify(user));
+                  navigate(user?.role === "Admin" ? "/users" : "/profile");
+                }}
+              />
+            }
           />
-        )}
-        {page === "signup" && <SignUp />}
 
-        {page === "users" && (
-          <>
-            <p>Hiện đang đăng nhập: {currentUser ? `${currentUser.username || currentUser.email} (${currentUser.role})` : "Chưa đăng nhập"}</p>
-            {loading && <p className="loading">⏳ Đang tải dữ liệu...</p>}
-            {error && <p className="error">{error}</p>}
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/upload-avatar" element={<UploadAvatar token={token} />} />
 
-            {!token && (
-              <p className="warning">Bạn chưa đăng nhập. Vui lòng đăng nhập tài khoản Admin để xem danh sách.</p>
-            )}
+          <Route
+            path="/users"
+            element={
+              isAdmin ? (
+                <>
+                  <AddUser onAddUser={async (n, e) => {
+                    await axios.post("http://localhost:5000/user", { name: n, email: e }, axiosConfig);
+                    await fetchUsers();
+                  }} />
+                  <UserList
+                    users={users}
+                    setUsers={setUsers}
+                    fetchUsers={fetchUsers}
+                    handleEdit={async (id, u) => {
+                      await axios.put(`http://localhost:5000/user/${id}`, u, axiosConfig);
+                      await fetchUsers();
+                    }}
+                    handleDelete={async (id) => {
+                      await axios.delete(`http://localhost:5000/user/${id}`, axiosConfig);
+                      setUsers(users.filter((u) => u._id !== id));
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="warning">Bạn không có quyền Admin.</p>
+              )
+            }
+          />
 
-            {token && !isAdmin && (
-              <p className="warning">Bạn không có quyền Admin — vui lòng đăng nhập bằng tài khoản Admin.</p>
-            )}
-
-            {isAdmin && (
-              <>
-                <div className="add-user-container">
-                  <AddUser onAddUser={handleAddUser} />
-                </div>
-
-                <UserList
-                  users={users}
-                  setUsers={setUsers}
-                  fetchUsers={fetchUsers}
-                  handleEdit={handleEdit}
-                  handleDelete={handleDelete}
-                />
-              </>
-            )}
-          </>
-        )}
-
-        {page === "profile" && <Profile />}
+          <Route path="/profile" element={<Profile />} />
+          <Route path="*" element={<Login />} />
+        </Routes>
       </div>
     </div>
   );
