@@ -36,7 +36,6 @@ app.use(express.urlencoded({ extended: true })); // Hỗ trợ form-data
 console.log("🧩 ENV CHECK:");
 console.log("PORT =", process.env.PORT);
 console.log("MONGO_URI =", process.env.MONGO_URI ? "✅ Có" : "❌ Thiếu");
-console.log("JWT_SECRET =", process.env.JWT_SECRET ? "✅ Có" : "❌ Thiếu");
 console.log("ACCESS_TOKEN_SECRET =", process.env.ACCESS_TOKEN_SECRET ? "✅ Có" : "❌ Thiếu");
 console.log("REFRESH_TOKEN_SECRET =", process.env.REFRESH_TOKEN_SECRET ? "✅ Có" : "❌ Thiếu");
 console.log("EMAIL_USER =", process.env.EMAIL_USER);

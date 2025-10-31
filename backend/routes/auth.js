@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const router = express.Router();
-const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret_key";
+const SECRET_KEY = process.env.ACCESS_TOKEN_SECRET || "default_access_secret";
 
 /* ================================
    ☁️ Cấu hình Cloudinary
@@ -91,7 +91,7 @@ router.post("/login", async (req, res) => {
     const accessToken = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       SECRET_KEY,
-      { expiresIn: "2h" }
+      { expiresIn: "10s" }
     );
 
     // ✅ Tạo Refresh Token (7 ngày)

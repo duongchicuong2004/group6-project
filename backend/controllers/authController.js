@@ -10,7 +10,6 @@ import RefreshToken from "../models/RefreshToken.js";
 // =======================
 // ⚙️ Cấu hình chung
 // =======================
-const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret_key";
 const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_key";
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key";
 
@@ -25,7 +24,7 @@ const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { id: user._id, email: user.email, role: user.role },
     ACCESS_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "10s" }
   );
 
   // Tạo Refresh Token (7 ngày)
@@ -237,10 +236,11 @@ export const resetPassword = async (req, res) => {
 // 📌 Upload Avatar (Cloudinary)
 // =======================
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_KEY,
-  api_secret: process.env.CLOUD_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
 
 const upload = multer({ dest: "uploads/" });
 export const uploadAvatarMiddleware = upload.single("avatar");

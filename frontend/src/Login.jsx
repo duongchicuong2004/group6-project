@@ -1,43 +1,42 @@
+// 📁 src/Login.jsx
 import React, { useState } from "react";
-import "./Login.css"; // 👉 thêm CSS (hoặc gộp vào App.css nếu muốn)
+import api from "./api"; // ✅ import axios instance có refresh tự động
+import "./Login.css";
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
   const [message, setMessage] = useState("");
+  const [token, setToken] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      const res = await fetch("http://localhost:5000/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      // Gọi API login
+      const res = await api.post("/auth/login", { email, password });
+      const data = res.data;
 
-      const data = await res.json();
-
-      if (res.ok) {
-        if (data.token) {
-          setToken(data.token);
-
-          // 🧩 Lưu email & token để UploadAvatar dùng lại
-          localStorage.setItem("token", data.token);
+      if (res.status === 200) {
+        if (data.accessToken && data.refreshToken) {
+          // ✅ Lưu token vào localStorage
+          localStorage.setItem("accessToken", data.accessToken);
+          localStorage.setItem("refreshToken", data.refreshToken);
           localStorage.setItem("email", email);
 
-          // Gọi hàm cha (nếu có)
-          if (typeof onLogin === "function") onLogin(data.token, data.user || null);
+          setToken(data.accessToken);
           setMessage("✅ Đăng nhập thành công!");
-        } else {
-          setMessage("⚠️ Đăng nhập thành công nhưng không nhận được token!");
-        }
-      } else {
-        setMessage(`⚠️ ${data.message || "Sai thông tin đăng nhập"}`);
-      }
 
+          // Callback cho App (nếu có)
+          if (typeof onLogin === "function")
+            onLogin(data.accessToken, data.user || null);
+        } else {
+          setMessage("⚠️ Không nhận được token hợp lệ từ server!");
+        }
+      }
     } catch (err) {
-      setMessage("❌ Lỗi kết nối server");
+      console.error("Login error:", err);
+      setMessage("❌ Sai thông tin hoặc lỗi kết nối server.");
     }
   };
 
@@ -48,7 +47,7 @@ function Login({ onLogin }) {
       <form className="login-form" onSubmit={handleSubmit}>
         <input
           type="email"
-          placeholder="Email"
+          placeholder="Nhập email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -56,7 +55,7 @@ function Login({ onLogin }) {
 
         <input
           type="password"
-          placeholder="Mật khẩu"
+          placeholder="Nhập mật khẩu"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -69,8 +68,8 @@ function Login({ onLogin }) {
 
       {token && (
         <div className="token-box">
-          <h4>JWT Token:</h4>
-          <textarea value={token} readOnly rows="4" />
+          <h4>Access Token:</h4>
+          <textarea value={token} readOnly rows="5" />
         </div>
       )}
     </div>
