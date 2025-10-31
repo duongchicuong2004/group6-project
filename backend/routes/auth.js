@@ -91,8 +91,9 @@ router.post("/login", async (req, res) => {
     const accessToken = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       SECRET_KEY,
-      { expiresIn: "10s" }
+      { expiresIn: "2h" } // ✅ thay vì 7m
     );
+
 
     // ✅ Tạo Refresh Token (7 ngày)
     const refreshTokenValue = jwt.sign(

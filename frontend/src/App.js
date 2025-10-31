@@ -25,15 +25,17 @@ function App() {
     }
   });
 
+  const navigate = useNavigate();
+
+  // ✅ Phân quyền dựa trên role
+  const isAdmin = token && currentUser?.role?.toLowerCase() === "admin";
+  const isModerator =
+    token && currentUser?.role?.toLowerCase() === "moderator";
+  const isAdminOrModerator = isAdmin || isModerator;
+
   const axiosConfig = token
     ? { headers: { Authorization: `Bearer ${token}` } }
     : {};
-
-  const isAdmin =
-    token &&
-    currentUser?.role?.toLowerCase() === "admin";
-
-  const navigate = useNavigate();
 
   // ======== API: Lấy danh sách người dùng ========
   const fetchUsers = async () => {
@@ -50,9 +52,10 @@ function App() {
     }
   };
 
+  // ✅ Moderator cũng được xem danh sách
   useEffect(() => {
-    if (isAdmin) fetchUsers();
-  }, [isAdmin]);
+    if (isAdminOrModerator) fetchUsers();
+  }, [isAdminOrModerator]);
 
   const handleLogout = () => {
     setToken("");
@@ -108,31 +111,57 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/upload-avatar" element={<UploadAvatar token={token} />} />
 
+          {/* 🔸 Trang quản lý người dùng */}
           <Route
             path="/users"
             element={
-              isAdmin ? (
+              isAdminOrModerator ? (
                 <>
-                  <AddUser onAddUser={async (n, e) => {
-                    await axios.post("http://localhost:5000/user", { name: n, email: e }, axiosConfig);
-                    await fetchUsers();
-                  }} />
+                  {/* 🧑 Moderator chỉ xem, Admin mới thêm/sửa/xóa */}
+                  {isAdmin && (
+                    <AddUser
+                      onAddUser={async (n, e) => {
+                        await axios.post(
+                          "http://localhost:5000/user",
+                          { name: n, email: e },
+                          axiosConfig
+                        );
+                        await fetchUsers();
+                      }}
+                    />
+                  )}
+
                   <UserList
                     users={users}
                     setUsers={setUsers}
                     fetchUsers={fetchUsers}
-                    handleEdit={async (id, u) => {
-                      await axios.put(`http://localhost:5000/user/${id}`, u, axiosConfig);
-                      await fetchUsers();
-                    }}
-                    handleDelete={async (id) => {
-                      await axios.delete(`http://localhost:5000/user/${id}`, axiosConfig);
-                      setUsers(users.filter((u) => u._id !== id));
-                    }}
+                    handleEdit={
+                      isAdmin
+                        ? async (id, u) => {
+                            await axios.put(
+                              `http://localhost:5000/user/${id}`,
+                              u,
+                              axiosConfig
+                            );
+                            await fetchUsers();
+                          }
+                        : null
+                    }
+                    handleDelete={
+                      isAdmin
+                        ? async (id) => {
+                            await axios.delete(
+                              `http://localhost:5000/user/${id}`,
+                              axiosConfig
+                            );
+                            setUsers(users.filter((u) => u._id !== id));
+                          }
+                        : null
+                    }
                   />
                 </>
               ) : (
-                <p className="warning">Bạn không có quyền Admin.</p>
+                <p className="warning">🚫 Bạn không có quyền truy cập trang này.</p>
               )
             }
           />

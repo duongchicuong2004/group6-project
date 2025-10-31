@@ -24,7 +24,7 @@ const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { id: user._id, email: user.email, role: user.role },
     ACCESS_SECRET,
-    { expiresIn: "10s" }
+    { expiresIn: "7m" }
   );
 
   // Tạo Refresh Token (7 ngày)
