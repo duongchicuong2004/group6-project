@@ -12,6 +12,7 @@ import { fileURLToPath } from "url";
 // Import các routes
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/auth.js";
+import logRoutes from "./routes/logRoutes.js";
 
 // ==============================
 // ⚙️ CẤU HÌNH .ENV
@@ -25,7 +26,9 @@ dotenv.config({ path: path.join(__dirname, "./.env") });
 // ==============================
 const app = express();
 
-// Middleware quan trọng 🔥
+// ==============================
+// 🧩 MIDDLEWARE CƠ BẢN
+// ==============================
 app.use(cors());
 app.use(express.json()); // Đọc JSON từ body
 app.use(express.urlencoded({ extended: true })); // Hỗ trợ form-data
@@ -68,9 +71,10 @@ app.get("/", (req, res) => {
   res.send("🚀 Server backend đang hoạt động ổn định!");
 });
 
-// Các route chính
-app.use("/user", userRoutes);
+// ✅ Đặt các route sau khi app được khởi tạo
 app.use("/auth", authRoutes);
+app.use("/user", userRoutes);
+app.use("/logs", logRoutes); // <-- Đúng vị trí
 
 // ==============================
 // 📨 TEST ROUTE: GỬI EMAIL KIỂM TRA SMTP
