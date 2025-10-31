@@ -5,11 +5,40 @@ import nodemailer from "nodemailer";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import User from "../models/User.js";
+import RefreshToken from "../models/RefreshToken.js";
 
 // =======================
 // ⚙️ Cấu hình chung
 // =======================
 const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret_key";
+const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_key";
+const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key";
+
+// =======================
+// 📌 Tạo AccessToken & RefreshToken
+// =======================
+const generateTokens = async (user) => {
+  const accessToken = jwt.sign(
+    { id: user._id, email: user.email, role: user.role },
+    ACCESS_SECRET,
+    { expiresIn: "15m" } // Access Token ngắn hạn
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    REFRESH_SECRET,
+    { expiresIn: "7d" } // Refresh Token dài hạn
+  );
+
+  // Lưu refresh token vào DB
+  await RefreshToken.create({
+    userId: user._id,
+    token: refreshToken,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  });
+
+  return { accessToken, refreshToken };
+};
 
 // =======================
 // 📌 Đăng ký (Sign Up)
@@ -51,25 +80,56 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Sai mật khẩu!" });
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      SECRET_KEY,
-      { expiresIn: "2h" }
-    );
+    const tokens = await generateTokens(user);
 
-    res.status(200).json({ message: "Đăng nhập thành công!", token });
+    res.status(200).json({
+      message: "Đăng nhập thành công!",
+      user: { id: user._id, email: user.email, role: user.role },
+      ...tokens,
+    });
   } catch (err) {
     res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
 
 // =======================
+// 📌 Làm mới Access Token (Refresh Token)
+// =======================
+export const refreshToken = async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ message: "Thiếu refresh token" });
+
+  try {
+    const stored = await RefreshToken.findOne({ token });
+    if (!stored)
+      return res.status(403).json({ message: "Refresh token không hợp lệ!" });
+
+    jwt.verify(token, REFRESH_SECRET, async (err, decoded) => {
+      if (err)
+        return res.status(403).json({ message: "Refresh token đã hết hạn!" });
+
+      const user = await User.findById(decoded.id);
+      if (!user)
+        return res.status(404).json({ message: "Không tìm thấy người dùng!" });
+
+      const tokens = await generateTokens(user);
+      res.json(tokens);
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+};
+
+// =======================
 // 📌 Đăng xuất (Logout)
 // =======================
-export const logout = (req, res) => {
-  res.status(200).json({
-    message: "Đăng xuất thành công (client tự xóa token phía frontend)",
-  });
+export const logout = async (req, res) => {
+  const { token } = req.body;
+  if (!token)
+    return res.status(400).json({ message: "Thiếu refresh token để logout" });
+
+  await RefreshToken.findOneAndDelete({ token });
+  res.json({ message: "Đã logout và hủy refresh token!" });
 };
 
 // =======================

@@ -12,7 +12,7 @@ import User from "../models/User.js";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import { refreshToken, logout } from "../controllers/authController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -183,9 +183,12 @@ router.post("/reset-password", async (req, res) => {
 /* ================================
    ☁️ Upload Avatar
 ================================ */
+/* ================================
+   ☁️ Upload Avatar
+================================ */
 router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
   try {
-    console.log("📥 req.body.email:", req.body.email); // 👈 Dòng mới thêm
+    console.log("📥 req.body.email:", req.body.email);
 
     const { email } = req.body;
     if (!req.file)
@@ -216,5 +219,11 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
       .json({ message: "Lỗi upload avatar!", error: error.message });
   }
 });
+
+/* ================================
+   🔁 Refresh Token & Logout
+================================ */
+router.post("/refresh", refreshToken);
+router.post("/logout", logout);
 
 export default router;

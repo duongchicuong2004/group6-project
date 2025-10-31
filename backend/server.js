@@ -6,33 +6,45 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
+import path from "path";
+import { fileURLToPath } from "url";
 
+// Import các routes
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/auth.js";
 
 // ==============================
-// ⚙️ ĐỌC FILE .env (trong thư mục backend)
+// ⚙️ CẤU HÌNH .ENV
 // ==============================
-dotenv.config();
-// ==============================
-// 🔑 KIỂM TRA JWT SECRET
-// ==============================
-console.log("🔑 JWT_SECRET đang dùng:", process.env.JWT_SECRET || "❌ Không có giá trị!");
-
-// Kiểm tra xem biến môi trường có được load hay chưa
-console.log("🧩 Kiểm tra biến môi trường:");
-console.log("EMAIL_USER =", process.env.EMAIL_USER);
-console.log("EMAIL_PASS =", process.env.EMAIL_PASS ? "✅ Có giá trị" : "❌ Không có giá trị");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, "./.env") });
 
 // ==============================
-// 🚀 KHỞI TẠO ỨNG DỤNG EXPRESS
+// 🚀 KHỞI TẠO EXPRESS APP
 // ==============================
 const app = express();
+
+// Middleware quan trọng 🔥
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Đọc JSON từ body
+app.use(express.urlencoded({ extended: true })); // Hỗ trợ form-data
 
 // ==============================
-// ⚙️ CẤU HÌNH PORT & MONGO URI
+// ⚙️ KIỂM TRA BIẾN MÔI TRƯỜNG
+// ==============================
+console.log("🧩 ENV CHECK:");
+console.log("PORT =", process.env.PORT);
+console.log("MONGO_URI =", process.env.MONGO_URI ? "✅ Có" : "❌ Thiếu");
+console.log("JWT_SECRET =", process.env.JWT_SECRET ? "✅ Có" : "❌ Thiếu");
+console.log("ACCESS_TOKEN_SECRET =", process.env.ACCESS_TOKEN_SECRET ? "✅ Có" : "❌ Thiếu");
+console.log("REFRESH_TOKEN_SECRET =", process.env.REFRESH_TOKEN_SECRET ? "✅ Có" : "❌ Thiếu");
+console.log("EMAIL_USER =", process.env.EMAIL_USER);
+console.log("EMAIL_PASS =", process.env.EMAIL_PASS ? "✅ Có" : "❌ Thiếu");
+console.log("CLOUDINARY_CLOUD_NAME =", process.env.CLOUDINARY_CLOUD_NAME || "❌ Thiếu");
+
+// ==============================
+// ⚙️ PORT & MONGO CONFIG
 // ==============================
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -42,10 +54,10 @@ const MONGO_URI = process.env.MONGO_URI;
 // ==============================
 mongoose
   .connect(MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
     tls: true,
     tlsAllowInvalidCertificates: true,
-    serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 20000,
   })
   .then(() => console.log("✅ Kết nối MongoDB Atlas thành công!"))
   .catch((err) => console.error("❌ Lỗi kết nối MongoDB:", err));
@@ -54,14 +66,15 @@ mongoose
 // 🔗 ROUTES
 // ==============================
 app.get("/", (req, res) => {
-  res.send("🚀 Server backend đang hoạt động!");
+  res.send("🚀 Server backend đang hoạt động ổn định!");
 });
 
+// Các route chính
 app.use("/user", userRoutes);
 app.use("/auth", authRoutes);
 
 // ==============================
-// 📨 ROUTE KIỂM TRA GỬI MAIL (TEST)
+// 📨 TEST ROUTE: GỬI EMAIL KIỂM TRA SMTP
 // ==============================
 app.get("/test-email", async (req, res) => {
   try {
@@ -74,17 +87,17 @@ app.get("/test-email", async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: `"Node Server" <${process.env.EMAIL_USER}>`,
+      from: `"Backend Server" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_USER,
-      subject: "Test Email NodeJS",
-      text: "✅ Gửi mail thành công! Cấu hình Gmail SMTP hoạt động tốt.",
+      subject: "✅ Test Email từ NodeJS",
+      text: "Thành công! Cấu hình SMTP Gmail hoạt động tốt.",
     });
 
-    res.json({ message: "✅ Gửi email thành công!" });
+    res.json({ message: "✅ Email gửi thành công!" });
   } catch (error) {
     console.error("❌ Lỗi gửi email:", error);
     res.status(500).json({
-      message: "Không gửi được email",
+      message: "Không gửi được email!",
       error: error.message,
     });
   }
