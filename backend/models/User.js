@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["User", "Admin"],
+      enum: ["User","Moderator", "Admin"],
       default: "User",
     },
     // === Thêm các trường hỗ trợ chức năng nâng cao ===
