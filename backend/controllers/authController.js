@@ -15,26 +15,29 @@ const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_key";
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key";
 
 // =======================
-// 📌 Tạo AccessToken & RefreshToken
+// 📌 Hàm tạo AccessToken & RefreshToken
 // =======================
 const generateTokens = async (user) => {
+  // Xóa Refresh Token cũ (phòng trùng lặp)
+  await RefreshToken.deleteMany({ userId: user._id });
+
+  // Tạo Access Token (15 phút)
   const accessToken = jwt.sign(
     { id: user._id, email: user.email, role: user.role },
     ACCESS_SECRET,
-    { expiresIn: "15m" } // Access Token ngắn hạn
+    { expiresIn: "15m" }
   );
 
-  const refreshToken = jwt.sign(
-    { id: user._id },
-    REFRESH_SECRET,
-    { expiresIn: "7d" } // Refresh Token dài hạn
-  );
+  // Tạo Refresh Token (7 ngày)
+  const refreshToken = jwt.sign({ id: user._id }, REFRESH_SECRET, {
+    expiresIn: "7d",
+  });
 
-  // Lưu refresh token vào DB
+  // Lưu Refresh Token vào DB
   await RefreshToken.create({
     userId: user._id,
     token: refreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   return { accessToken, refreshToken };
@@ -84,7 +87,12 @@ export const login = async (req, res) => {
 
     res.status(200).json({
       message: "Đăng nhập thành công!",
-      user: { id: user._id, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
       ...tokens,
     });
   } catch (err) {
@@ -113,7 +121,14 @@ export const refreshToken = async (req, res) => {
         return res.status(404).json({ message: "Không tìm thấy người dùng!" });
 
       const tokens = await generateTokens(user);
-      res.json(tokens);
+
+      // Xoá refresh token cũ để tránh reuse
+      await RefreshToken.findOneAndDelete({ token });
+
+      res.json({
+        message: "Refresh token thành công!",
+        ...tokens,
+      });
     });
   } catch (err) {
     res.status(500).json({ message: "Lỗi server", error: err.message });
@@ -140,7 +155,9 @@ export const forgotPassword = async (req, res) => {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user)
-      return res.status(404).json({ message: "Email không tồn tại trong hệ thống" });
+      return res
+        .status(404)
+        .json({ message: "Email không tồn tại trong hệ thống" });
 
     // Tạo token ngẫu nhiên
     const token = crypto.randomBytes(32).toString("hex");
@@ -148,7 +165,7 @@ export const forgotPassword = async (req, res) => {
     user.tokenExpire = Date.now() + 60 * 60 * 1000; // 1 giờ
     await user.save();
 
-    // Kiểm tra thông tin cấu hình Gmail
+    // Kiểm tra cấu hình email
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       return res.status(500).json({
         message:
@@ -169,7 +186,6 @@ export const forgotPassword = async (req, res) => {
 
     const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
-    // Gửi email
     await transporter.sendMail({
       from: `"Hệ thống Group 6" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -177,7 +193,7 @@ export const forgotPassword = async (req, res) => {
       html: `
         <h3>Xin chào ${user.full_name || user.username},</h3>
         <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
-        <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu (có hiệu lực trong 1 giờ):</p>
+        <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu (hiệu lực trong 1 giờ):</p>
         <a href="${resetLink}" target="_blank">${resetLink}</a>
         <br><br>
         <p>Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email này.</p>
@@ -234,10 +250,12 @@ export const uploadAvatar = async (req, res) => {
     const file = req.file?.path;
     const { email } = req.body;
 
-    if (!file) return res.status(400).json({ message: "Không có file được tải lên!" });
+    if (!file)
+      return res.status(400).json({ message: "Không có file được tải lên!" });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng!" });
+    if (!user)
+      return res.status(404).json({ message: "Không tìm thấy người dùng!" });
 
     const result = await cloudinary.uploader.upload(file, {
       folder: "avatars",

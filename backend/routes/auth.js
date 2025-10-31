@@ -8,15 +8,16 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import User from "../models/User.js";
-// 📁 routes/auth.js
+import RefreshToken from "../models/RefreshToken.js"; // ✅ thêm dòng này
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { refreshToken, logout } from "../controllers/authController.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Đọc file .env từ thư mục backend
+// Đọc file .env
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const router = express.Router();
@@ -36,11 +37,11 @@ console.log({
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? "✅ Có" : "❌ Thiếu",
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "✅ Có" : "❌ Thiếu",
 });
-// Cấu hình multer cho upload ảnh
+
 const upload = multer({ dest: "uploads/" });
 
 /* ================================
-   🧾 Đăng ký (Signup)
+   🧾 Đăng ký
 ================================ */
 router.post("/signup", async (req, res) => {
   try {
@@ -73,7 +74,7 @@ router.post("/signup", async (req, res) => {
 });
 
 /* ================================
-   🔐 Đăng nhập (Login)
+   🔐 Đăng nhập
 ================================ */
 router.post("/login", async (req, res) => {
   try {
@@ -86,14 +87,33 @@ router.post("/login", async (req, res) => {
     if (!isPasswordValid)
       return res.status(401).json({ message: "Email hoặc mật khẩu không đúng!" });
 
-    const token = jwt.sign(
+    // ✅ Tạo Access Token (2 giờ)
+    const accessToken = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       SECRET_KEY,
       { expiresIn: "2h" }
     );
 
+    // ✅ Tạo Refresh Token (7 ngày)
+    const refreshTokenValue = jwt.sign(
+      { id: user._id },
+      process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key",
+      { expiresIn: "7d" }
+    );
+
+    // ✅ Lưu refresh token vào MongoDB
+    await RefreshToken.create({ userId: user._id, token: refreshTokenValue });
+
+    // Ẩn password khi trả về
     const { password: _, ...userData } = user.toObject();
-    res.status(200).json({ message: "Đăng nhập thành công!", token, user: userData });
+
+    // ✅ Gửi trả về cả 2 token
+    res.status(200).json({
+      message: "Đăng nhập thành công!",
+      accessToken,
+      refreshToken: refreshTokenValue,
+      user: userData,
+    });
   } catch (error) {
     console.error("❌ Lỗi đăng nhập:", error);
     res.status(500).json({ message: "Lỗi server!", error: error.message });
@@ -101,7 +121,7 @@ router.post("/login", async (req, res) => {
 });
 
 /* ================================
-   🔑 Quên mật khẩu (Forgot Password)
+   🔑 Quên mật khẩu
 ================================ */
 router.post("/forgot-password", async (req, res) => {
   try {
@@ -127,7 +147,6 @@ router.post("/forgot-password", async (req, res) => {
       });
     }
 
-    // Gửi email thật (nếu cấu hình)
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
@@ -155,7 +174,7 @@ router.post("/forgot-password", async (req, res) => {
 });
 
 /* ================================
-   🔄 Đặt lại mật khẩu (Reset Password)
+   🔄 Đặt lại mật khẩu
 ================================ */
 router.post("/reset-password", async (req, res) => {
   try {
@@ -180,9 +199,6 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-/* ================================
-   ☁️ Upload Avatar
-================================ */
 /* ================================
    ☁️ Upload Avatar
 ================================ */
@@ -214,9 +230,7 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Lỗi upload avatar:", error);
-    res
-      .status(500)
-      .json({ message: "Lỗi upload avatar!", error: error.message });
+    res.status(500).json({ message: "Lỗi upload avatar!", error: error.message });
   }
 });
 
