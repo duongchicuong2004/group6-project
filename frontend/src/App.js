@@ -9,6 +9,7 @@ import Profile from "./Profile";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
 import UploadAvatar from "./UploadAvatar";
+import LogsPage from "./LogsPage"; // ✅ Trang log
 import "./App.css";
 
 function App() {
@@ -27,10 +28,9 @@ function App() {
 
   const navigate = useNavigate();
 
-  // ✅ Phân quyền dựa trên role
+  // ✅ Phân quyền
   const isAdmin = token && currentUser?.role?.toLowerCase() === "admin";
-  const isModerator =
-    token && currentUser?.role?.toLowerCase() === "moderator";
+  const isModerator = token && currentUser?.role?.toLowerCase() === "moderator";
   const isAdminOrModerator = isAdmin || isModerator;
 
   const axiosConfig = token
@@ -79,10 +79,24 @@ function App() {
           <Link to="/users"><button>Quản lý người dùng</button></Link>
           <Link to="/profile"><button>Thông tin cá nhân</button></Link>
           <Link to="/upload-avatar"><button>Upload Avatar</button></Link>
+
+          {/* 🔸 Chỉ Admin mới thấy nút này */}
+          {isAdmin && (
+            <Link to="/admin/logs">
+              <button style={{ backgroundColor: "#00695c", color: "white" }}>
+                📘 Xem Log Hoạt Động
+</button>
+            </Link>
+          )}
+
           {token && (
             <button
               onClick={handleLogout}
-              style={{ marginLeft: "8px", backgroundColor: "#d32f2f", color: "white" }}
+              style={{
+                marginLeft: "8px",
+                backgroundColor: "#d32f2f",
+                color: "white",
+              }}
             >
               Đăng xuất
             </button>
@@ -111,6 +125,18 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/upload-avatar" element={<UploadAvatar token={token} />} />
 
+          {/* 🔸 Trang log dành riêng cho Admin */}
+          <Route
+            path="/admin/logs"
+            element={
+              isAdmin ? (
+                <LogsPage />
+              ) : (
+                <p className="warning">🚫 Bạn không có quyền xem trang này.</p>
+              )
+            }
+          />
+
           {/* 🔸 Trang quản lý người dùng */}
           <Route
             path="/users"
@@ -120,10 +146,10 @@ function App() {
                   {/* 🧑 Moderator chỉ xem, Admin mới thêm/sửa/xóa */}
                   {isAdmin && (
                     <AddUser
-                      onAddUser={async (n, e) => {
+                      onAddUser={async (name, email) => {
                         await axios.post(
                           "http://localhost:5000/user",
-                          { name: n, email: e },
+                          { name, email },
                           axiosConfig
                         );
                         await fetchUsers();
@@ -137,10 +163,10 @@ function App() {
                     fetchUsers={fetchUsers}
                     handleEdit={
                       isAdmin
-                        ? async (id, u) => {
+                        ? async (id, data) => {
                             await axios.put(
                               `http://localhost:5000/user/${id}`,
-                              u,
+                              data,
                               axiosConfig
                             );
                             await fetchUsers();
@@ -151,7 +177,7 @@ function App() {
                       isAdmin
                         ? async (id) => {
                             await axios.delete(
-                              `http://localhost:5000/user/${id}`,
+`http://localhost:5000/user/${id}`,
                               axiosConfig
                             );
                             setUsers(users.filter((u) => u._id !== id));

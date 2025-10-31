@@ -1,4 +1,3 @@
-// 📁 routes/auth.js
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -8,11 +7,13 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import User from "../models/User.js";
-import RefreshToken from "../models/RefreshToken.js"; // ✅ thêm dòng này
+import RefreshToken from "../models/RefreshToken.js";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { refreshToken, logout } from "../controllers/authController.js";
+import { logActivity } from "../middleware/logActivity.js";
+import { rateLimitLogin } from "../middleware/rateLimitLogin.js"; // ✅ Rate limit
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,9 +48,7 @@ router.post("/signup", async (req, res) => {
   try {
     const { username, full_name, email, phone, address, password, role } = req.body;
 
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
-    });
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser)
       return res.status(400).json({ message: "Email hoặc username đã tồn tại!" });
 
@@ -74,26 +73,24 @@ router.post("/signup", async (req, res) => {
 });
 
 /* ================================
-   🔐 Đăng nhập
+   🔐 Đăng nhập (Rate limit + Log)
 ================================ */
-router.post("/login", async (req, res) => {
+router.post("/login", rateLimitLogin, logActivity, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "Email hoặc mật khẩu không đúng!" });
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid)
       return res.status(401).json({ message: "Email hoặc mật khẩu không đúng!" });
 
-    // ✅ Tạo Access Token (2 giờ)
+    // ✅ Tạo Access Token (2h)
     const accessToken = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       SECRET_KEY,
-      { expiresIn: "2h" } // ✅ thay vì 7m
+      { expiresIn: "2h" }
     );
-
 
     // ✅ Tạo Refresh Token (7 ngày)
     const refreshTokenValue = jwt.sign(
@@ -102,13 +99,11 @@ router.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // ✅ Lưu refresh token vào MongoDB
+    // ✅ Lưu Refresh Token vào MongoDB
     await RefreshToken.create({ userId: user._id, token: refreshTokenValue });
 
-    // Ẩn password khi trả về
     const { password: _, ...userData } = user.toObject();
 
-    // ✅ Gửi trả về cả 2 token
     res.status(200).json({
       message: "Đăng nhập thành công!",
       accessToken,
@@ -133,7 +128,7 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetToken = resetToken;
-    user.tokenExpire = Date.now() + 60 * 60 * 1000; // 1 giờ
+    user.tokenExpire = Date.now() + 60 * 60 * 1000; // 1h
     await user.save();
 
     const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
@@ -143,7 +138,7 @@ router.post("/forgot-password", async (req, res) => {
 
     if (process.env.NODE_ENV !== "production") {
       return res.json({
-        message: "Đường dẫn đặt lại mật khẩu (chạy DEV):",
+        message: "Đường dẫn đặt lại mật khẩu (DEV):",
         resetLink,
       });
     }
@@ -179,7 +174,7 @@ router.post("/forgot-password", async (req, res) => {
 ================================ */
 router.post("/reset-password", async (req, res) => {
   try {
-    const { token, password } = req.body;
+const { token, password } = req.body;
     const user = await User.findOne({
       resetToken: token,
       tokenExpire: { $gt: Date.now() },
@@ -205,8 +200,6 @@ router.post("/reset-password", async (req, res) => {
 ================================ */
 router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
   try {
-    console.log("📥 req.body.email:", req.body.email);
-
     const { email } = req.body;
     if (!req.file)
       return res.status(400).json({ message: "Không có file được tải lên!" });
