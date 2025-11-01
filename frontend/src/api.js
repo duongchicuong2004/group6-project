@@ -1,8 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000", // hoặc link Render backend của bạn
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000",
 });
+
 
 // ✅ Thêm token vào header cho mọi request
 api.interceptors.request.use((config) => {
