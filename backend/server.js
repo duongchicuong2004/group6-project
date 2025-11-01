@@ -31,9 +31,12 @@ const app = express();
 // ==============================
 app.use(
   cors({
-    origin: "http://localhost:3000", // cho phép frontend
+    origin: [
+      "http://localhost:3000",
+      "https://group6-project-beta.vercel.app", // <-- domain frontend trên Vercel
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true, // cho phép cookie/token nếu có
+    credentials: true,
   })
 );
 app.use(express.json()); // Đọc JSON từ body
@@ -115,6 +118,6 @@ app.get("/test-email", async (req, res) => {
 // ==============================
 // 🚀 KHỞI ĐỘNG SERVER
 // ==============================
-app.listen(PORT, () => {
-  console.log(`✅ Server đang chạy tại: http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server đang chạy trên cổng ${PORT} (Render environment)`);
 });
