@@ -7,13 +7,16 @@ function SignUp() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
+  // ✅ Dùng biến môi trường cho API backend
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/auth/signup", {
+      const res = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 🔹 Gửi đúng tên trường backend yêu cầu
+        // Gửi đúng tên trường backend yêu cầu
         body: JSON.stringify({ username, email, password }),
       });
 

@@ -14,7 +14,13 @@ function Profile() {
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState("");
 
-  const token = localStorage.getItem("token");
+  // ✅ Lấy token từ localStorage
+  const token =
+    localStorage.getItem("accessToken") || localStorage.getItem("token");
+
+  // ✅ Lấy URL backend từ biến môi trường (nếu có)
+  const API_URL =
+    process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   // ✅ Lấy thông tin người dùng khi vào trang
   useEffect(() => {
@@ -25,7 +31,7 @@ function Profile() {
           return;
         }
 
-        const res = await axios.get("http://localhost:5000/user/profile", {
+        const res = await axios.get(`${API_URL}/user/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -66,7 +72,7 @@ function Profile() {
 
       if (user.password.trim() !== "") updateData.password = user.password;
 
-      await axios.put("http://localhost:5000/user/profile", updateData, {
+      await axios.put(`${API_URL}/user/profile`, updateData, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -93,16 +99,12 @@ function Profile() {
     formData.append("email", user.email);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/auth/upload-avatar",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await axios.post(`${API_URL}/auth/upload-avatar`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setUser({ ...user, avatarUrl: res.data.avatarUrl });
       setPreview(null);
@@ -125,8 +127,9 @@ function Profile() {
 
   // 🔒 Đăng xuất
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("email");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
     window.location.href = "/login";
   };
 
@@ -218,7 +221,12 @@ function Profile() {
         </form>
 
         {message && (
-          <p style={{ marginTop: "14px", color: message.startsWith("✅") ? "green" : "#d32f2f" }}>
+          <p
+            style={{
+              marginTop: "14px",
+              color: message.startsWith("✅") ? "green" : "#d32f2f",
+            }}
+          >
             {message}
           </p>
         )}
@@ -247,7 +255,12 @@ const card = {
 
 const cardTitle = { color: "#00695c", marginBottom: "18px" };
 const formStyle = { display: "flex", flexDirection: "column", gap: "12px" };
-const labelStyle = { display: "flex", flexDirection: "column", fontSize: "14px", color: "#333" };
+const labelStyle = {
+  display: "flex",
+  flexDirection: "column",
+  fontSize: "14px",
+  color: "#333",
+};
 const inputStyle = {
   padding: "10px 12px",
   borderRadius: "8px",

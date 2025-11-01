@@ -1,3 +1,4 @@
+// 📁 src/App.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
@@ -31,6 +32,11 @@ function App() {
   const isModerator = user?.role?.toLowerCase() === "moderator";
   const isAdminOrModerator = isAdmin || isModerator;
 
+  // 🌍 Backend URL tự động (Render)
+  const API_URL =
+    process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+  // ✅ Gắn token nếu có
   const axiosConfig = token
     ? { headers: { Authorization: `Bearer ${token}` } }
     : {};
@@ -40,7 +46,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get("http://localhost:5000/user", axiosConfig);
+      const res = await axios.get(`${API_URL}/user`, axiosConfig);
       setUsers(res.data);
     } catch (err) {
       console.error("❌ Lỗi khi tải danh sách người dùng:", err);
@@ -120,7 +126,7 @@ function App() {
             }
           />
 
-          {/* Trang upload avatar (chỉ khi đăng nhập) */}
+          {/* Trang upload avatar */}
           <Route
             path="/upload-avatar"
             element={
@@ -140,7 +146,7 @@ function App() {
                     <AddUser
                       onAddUser={async (name, email) => {
                         await axios.post(
-                          "http://localhost:5000/user",
+                          `${API_URL}/user`,
                           { name, email },
                           axiosConfig
                         );
@@ -156,7 +162,7 @@ function App() {
                       isAdmin
                         ? async (id, data) => {
                             await axios.put(
-                              `http://localhost:5000/user/${id}`,
+                              `${API_URL}/user/${id}`,
                               data,
                               axiosConfig
                             );
@@ -168,7 +174,7 @@ function App() {
                       isAdmin
                         ? async (id) => {
                             await axios.delete(
-                              `http://localhost:5000/user/${id}`,
+                              `${API_URL}/user/${id}`,
                               axiosConfig
                             );
                             setUsers(users.filter((u) => u._id !== id));
@@ -191,35 +197,34 @@ function App() {
             }
           />
 
-          {/* Trang mặc định (nếu đã đăng nhập thì đi đến trang phù hợp) */}
-<Route
-  path="/"
-  element={
-    token ? (
-      isAdminOrModerator ? (
-        <ProtectedRoute>
-          <UserList
-            users={users}
-            setUsers={setUsers}
-            fetchUsers={fetchUsers}
-            handleEdit={null}
-            handleDelete={null}
+          {/* Trang mặc định */}
+          <Route
+            path="/"
+            element={
+              token ? (
+                isAdminOrModerator ? (
+                  <ProtectedRoute>
+                    <UserList
+                      users={users}
+                      setUsers={setUsers}
+                      fetchUsers={fetchUsers}
+                      handleEdit={null}
+                      handleDelete={null}
+                    />
+                  </ProtectedRoute>
+                ) : (
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                )
+              ) : (
+                <Login />
+              )
+            }
           />
-        </ProtectedRoute>
-      ) : (
-        <ProtectedRoute>
-          <Profile />
-        </ProtectedRoute>
-      )
-    ) : (
-      <Login />
-    )
-  }
-/>
 
-{/* Trang không tồn tại */}
-<Route path="*" element={<h3>404 - Trang không tồn tại</h3>} />
-
+          {/* Trang không tồn tại */}
+          <Route path="*" element={<h3>404 - Trang không tồn tại</h3>} />
         </Routes>
       </div>
     </div>

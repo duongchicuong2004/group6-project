@@ -6,8 +6,11 @@ function UserList({ users = [], setUsers, fetchUsers }) {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    role: "User", // ✅ thêm role
+    role: "User",
   });
+
+  // ✅ Đặt API URL qua biến môi trường
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   // ✅ Khi bấm "Sửa"
   const handleEdit = (user) => {
@@ -19,30 +22,28 @@ function UserList({ users = [], setUsers, fetchUsers }) {
     });
   };
 
-  // ✅ Cập nhật user (PUT)
+  // ✅ Cập nhật user
   const handleUpdate = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/user/${editingUser._id}`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put(`${API_URL}/user/${editingUser._id}`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       alert("✅ Cập nhật thành công!");
       setEditingUser(null);
       if (typeof fetchUsers === "function") await fetchUsers();
     } catch (error) {
       console.error("❌ Lỗi khi cập nhật user:", error);
-      alert("Không thể cập nhật user!");
+      alert("Không thể cập nhật người dùng!");
     }
   };
 
-  // ✅ Xóa user (DELETE)
+  // ✅ Xóa user
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa tài khoản này không?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/user/${id}`, {
+      await axios.delete(`${API_URL}/user/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("🗑️ Xóa thành công!");
@@ -85,7 +86,9 @@ function UserList({ users = [], setUsers, fetchUsers }) {
           {/* ✅ Thêm chọn vai trò */}
           <select
             value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, role: e.target.value })
+            }
           >
             <option value="User">User</option>
             <option value="Moderator">Moderator</option>

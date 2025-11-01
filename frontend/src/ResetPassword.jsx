@@ -6,17 +6,23 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Lấy token từ URL dạng ?token=...
+  // ✅ Lấy token từ URL (?token=...)
   const query = new URLSearchParams(location.search);
   const token = query.get("token");
 
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
+  // ✅ Lấy URL backend từ biến môi trường (.env)
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:5000/auth/reset-password", { token, password });
+      const res = await axios.post(`${API_URL}/auth/reset-password`, {
+        token,
+        password,
+      });
       setMessage("✅ Đặt lại mật khẩu thành công!");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {

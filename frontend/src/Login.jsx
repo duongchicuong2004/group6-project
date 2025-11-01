@@ -17,7 +17,7 @@ function Login() {
     e.preventDefault();
 
     const API_URL =
-      process.env.REACT_APP_API_URL || "https://group6-project-rwbe.onrender.com";
+      process.env.REACT_APP_API_URL || "http://localhost:5000";
 
     try {
       const res = await axios.post(`${API_URL}/auth/login`, {
