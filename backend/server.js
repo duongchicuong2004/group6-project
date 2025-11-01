@@ -29,7 +29,13 @@ const app = express();
 // ==============================
 // 🧩 MIDDLEWARE CƠ BẢN
 // ==============================
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // cho phép frontend
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // cho phép cookie/token nếu có
+  })
+);
 app.use(express.json()); // Đọc JSON từ body
 app.use(express.urlencoded({ extended: true })); // Hỗ trợ form-data
 

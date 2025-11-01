@@ -192,7 +192,7 @@ export const forgotPassword = async (req, res) => {
       html: `
         <h3>Xin chào ${user.full_name || user.username},</h3>
         <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
-        <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu (hiệu lực trong 1 giờ):</p>
+<p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu (hiệu lực trong 1 giờ):</p>
         <a href="${resetLink}" target="_blank">${resetLink}</a>
         <br><br>
         <p>Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email này.</p>

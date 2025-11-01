@@ -3,12 +3,20 @@ import axios from "axios";
 
 function UserList({ users = [], setUsers, fetchUsers }) {
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ username: "", email: "" });
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    role: "User", // ✅ thêm role
+  });
 
   // ✅ Khi bấm "Sửa"
   const handleEdit = (user) => {
     setEditingUser(user);
-    setFormData({ username: user.username || "", email: user.email || "" });
+    setFormData({
+      username: user.username || "",
+      email: user.email || "",
+      role: user.role || "User",
+    });
   };
 
   // ✅ Cập nhật user (PUT)
@@ -38,7 +46,6 @@ function UserList({ users = [], setUsers, fetchUsers }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("🗑️ Xóa thành công!");
-      // reload from server to ensure UI matches backend
       if (typeof fetchUsers === "function") await fetchUsers();
       else setUsers(users.filter((u) => u._id !== id));
     } catch (error) {
@@ -47,7 +54,6 @@ function UserList({ users = [], setUsers, fetchUsers }) {
     }
   };
 
-  // debug: log incoming users prop
   useEffect(() => {
     console.log("UserList received users:", users);
   }, [users]);
@@ -75,6 +81,16 @@ function UserList({ users = [], setUsers, fetchUsers }) {
             }
             placeholder="Email"
           />
+
+          {/* ✅ Thêm chọn vai trò */}
+          <select
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+          >
+            <option value="User">User</option>
+            <option value="Moderator">Moderator</option>
+          </select>
+
           <button type="button" onClick={handleUpdate}>
             Cập nhật
           </button>

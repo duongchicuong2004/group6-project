@@ -6,32 +6,32 @@ import nodemailer from "nodemailer";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import User from "../models/User.js";
-import RefreshToken from "../models/RefreshToken.js";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+
+import User from "../models/User.js";
+import RefreshToken from "../models/RefreshToken.js";
 import { refreshToken, logout } from "../controllers/authController.js";
-import { logActivity } from "../middleware/logActivity.js";
-import { rateLimitLogin } from "../middleware/rateLimitLogin.js"; // ✅ Rate limit
+import loginLimiter from "../middleware/rateLimitLogin.js";
+import { logActivity } from "../middleware/logActivity.js"; // ✅ Thêm log
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Đọc file .env
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const router = express.Router();
 const SECRET_KEY = process.env.ACCESS_TOKEN_SECRET || "default_access_secret";
 
 /* ================================
-   ☁️ Cấu hình Cloudinary
+   ☁️ Cloudinary Config
 ================================ */
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
 console.log("🔧 Kiểm tra Cloudinary ENV:");
 console.log({
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
@@ -47,14 +47,12 @@ const upload = multer({ dest: "uploads/" });
 router.post("/signup", async (req, res) => {
   try {
     const { username, full_name, email, phone, address, password, role } = req.body;
-
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser)
       return res.status(400).json({ message: "Email hoặc username đã tồn tại!" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
+    const newUser = await User.create({
       username,
       full_name,
       email,
@@ -64,7 +62,7 @@ router.post("/signup", async (req, res) => {
       role: role || "User",
     });
 
-    await newUser.save();
+    await logActivity("REGISTER")(req, res, () => {});
     res.status(201).json({ message: "Đăng ký thành công!", user: newUser });
   } catch (error) {
     console.error("❌ Lỗi đăng ký:", error);
@@ -73,34 +71,35 @@ router.post("/signup", async (req, res) => {
 });
 
 /* ================================
-   🔐 Đăng nhập (Rate limit + Log)
+   🔐 Đăng nhập (CÓ rate limit)
 ================================ */
-router.post("/login", rateLimitLogin, logActivity, async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "Email hoặc mật khẩu không đúng!" });
-const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid)
-      return res.status(401).json({ message: "Email hoặc mật khẩu không đúng!" });
 
-    // ✅ Tạo Access Token (2h)
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid)
+return res.status(401).json({ message: "Email hoặc mật khẩu không đúng!" });
+
     const accessToken = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       SECRET_KEY,
       { expiresIn: "2h" }
     );
 
-    // ✅ Tạo Refresh Token (7 ngày)
     const refreshTokenValue = jwt.sign(
       { id: user._id },
       process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key",
       { expiresIn: "7d" }
     );
 
-    // ✅ Lưu Refresh Token vào MongoDB
+    await RefreshToken.deleteMany({ userId: user._id });
     await RefreshToken.create({ userId: user._id, token: refreshTokenValue });
+
+    await logActivity("LOGIN")(req, res, () => {});
 
     const { password: _, ...userData } = user.toObject();
 
@@ -128,20 +127,11 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetToken = resetToken;
-    user.tokenExpire = Date.now() + 60 * 60 * 1000; // 1h
+    user.tokenExpire = Date.now() + 60 * 60 * 1000;
     await user.save();
 
     const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
     const resetLink = `${CLIENT_URL}/reset-password?token=${resetToken}`;
-
-    console.log("📧 Reset link:", resetLink);
-
-    if (process.env.NODE_ENV !== "production") {
-      return res.json({
-        message: "Đường dẫn đặt lại mật khẩu (DEV):",
-        resetLink,
-      });
-    }
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -162,6 +152,7 @@ router.post("/forgot-password", async (req, res) => {
              <p><i>Liên kết có hiệu lực trong 1 giờ.</i></p>`,
     });
 
+    await logActivity("FORGOT_PASSWORD")(req, res, () => {});
     res.json({ message: "Email đặt lại mật khẩu đã được gửi!" });
   } catch (error) {
     console.error("❌ Lỗi gửi email:", error);
@@ -170,11 +161,11 @@ router.post("/forgot-password", async (req, res) => {
 });
 
 /* ================================
-   🔄 Đặt lại mật khẩu
+   🔁 Đặt lại mật khẩu
 ================================ */
 router.post("/reset-password", async (req, res) => {
   try {
-const { token, password } = req.body;
+    const { token, password } = req.body;
     const user = await User.findOne({
       resetToken: token,
       tokenExpire: { $gt: Date.now() },
@@ -182,12 +173,12 @@ const { token, password } = req.body;
 
     if (!user)
       return res.status(400).json({ message: "Token không hợp lệ hoặc đã hết hạn!" });
-
-    user.password = await bcrypt.hash(password, 10);
+user.password = await bcrypt.hash(password, 10);
     user.resetToken = null;
     user.tokenExpire = null;
     await user.save();
 
+    await logActivity("RESET_PASSWORD")(req, res, () => {});
     res.json({ message: "Đặt lại mật khẩu thành công!" });
   } catch (error) {
     console.error("❌ Lỗi reset mật khẩu:", error);
@@ -218,6 +209,7 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
     user.avatarUrl = uploadResult.secure_url;
     await user.save();
 
+    await logActivity("UPLOAD_AVATAR")(req, res, () => {});
     res.json({
       message: "Cập nhật avatar thành công!",
       avatarUrl: uploadResult.secure_url,
@@ -232,6 +224,9 @@ router.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
    🔁 Refresh Token & Logout
 ================================ */
 router.post("/refresh", refreshToken);
-router.post("/logout", logout);
+router.post("/logout", async (req, res) => {
+  await logActivity("LOGOUT")(req, res, () => {});
+  logout(req, res);
+});
 
 export default router;

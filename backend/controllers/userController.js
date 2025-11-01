@@ -62,7 +62,8 @@ export const getAllUsers = async (req, res) => {
 // ✅ Tạo user mới (Admin)
 export const createUser = async (req, res) => {
   try {
-    if (!req.user || req.user.role !== "Admin") {
+    if (!req.user || String(req.user.role).toLowerCase() !== "admin")
+ {
       return res.status(403).json({ message: "Bạn không có quyền tạo user!" });
     }
 
@@ -94,7 +95,8 @@ export const createUser = async (req, res) => {
 // ✅ Cập nhật user bởi Admin (PUT /user/:id)
 export const updateUserByAdmin = async (req, res) => {
   try {
-    if (!req.user || req.user.role !== "Admin") {
+    // Chỉ Admin mới được quyền chỉnh sửa user
+    if (!req.user || String(req.user.role).toLowerCase() !== "admin") {
       return res.status(403).json({ message: "Bạn không có quyền cập nhật user!" });
     }
 
@@ -104,32 +106,51 @@ export const updateUserByAdmin = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng!" });
 
+    // ✅ Không cho phép admin tự hạ cấp mình
+    if (userId === req.user.id && role && role.toLowerCase() !== "admin") {
+      return res.status(400).json({ message: "Không thể thay đổi vai trò của chính bạn!" });
+    }
+
+    // ✅ Chỉ cho phép role hợp lệ
+    const allowedRoles = ["user", "moderator", "admin"];
+    if (role && !allowedRoles.includes(role.toLowerCase())) {
+      return res.status(400).json({ message: "Vai trò không hợp lệ! (chỉ: User, Moderator, Admin)" });
+    }
+
+    // ✅ Cập nhật thông tin cơ bản
     user.username = username || user.username;
     user.full_name = full_name || user.full_name;
     user.email = email || user.email;
     user.phone = phone || user.phone;
     user.address = address || user.address;
-    user.role = role || user.role;
 
+    // ✅ Cập nhật role (nếu có)
+    if (role) user.role = role;
+
+    // ✅ Cập nhật mật khẩu nếu có
     if (password && password.trim() !== "") {
       user.password = await bcrypt.hash(password, 10);
     }
 
     await user.save();
+
     const { password: _, ...userData } = user.toObject();
     res.status(200).json({ message: "Cập nhật thành công!", user: userData });
+
   } catch (error) {
     console.error("Error in updateUserByAdmin:", error);
     res.status(500).json({ message: "Không thể cập nhật user!" });
   }
 };
 
+
 // ✅ Xóa người dùng (Admin only)
 export const deleteUser = async (req, res) => {
   try {
     // Kiểm tra quyền Admin
-    if (!req.user || String(req.user.role).toLowerCase() !== 'admin') {
-      return res.status(403).json({ message: "Bạn không có quyền xóa người dùng!" });
+         if (!req.user || String(req.user.role).toLowerCase() !== "admin")
+ {
+      return res.status(403).json({ message: "Bạn không có quyền xoá user!" });
     }
 
     const userId = req.params.id;

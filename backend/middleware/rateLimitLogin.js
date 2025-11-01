@@ -1,26 +1,13 @@
-const loginAttempts = new Map(); // { IP: { count, lastAttempt } }
+import rateLimit from "express-rate-limit";
 
-export const rateLimitLogin = (req, res, next) => {
-  const ip = req.ip;
-  const now = Date.now();
+const loginLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 phút
+  max: 5, // chỉ cho phép 5 lần thử đăng nhập sai
+  message: {
+    message: "Quá nhiều lần đăng nhập thất bại. Vui lòng thử lại sau 5 phút.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-  const attempt = loginAttempts.get(ip) || { count: 0, lastAttempt: now };
-
-  // Reset nếu quá 5 phút
-  if (now - attempt.lastAttempt > 5 * 60 * 1000) {
-    attempt.count = 0;
-  }
-
-  attempt.count++;
-  attempt.lastAttempt = now;
-  loginAttempts.set(ip, attempt);
-
-  if (attempt.count > 5) {
-    console.warn(`🚨 IP ${ip} bị chặn do login quá nhiều lần`);
-    return res.status(429).json({
-      message: "Đăng nhập quá nhiều lần. Vui lòng thử lại sau 5 phút.",
-    });
-  }
-
-  next();
-};
+export default loginLimiter; // 👈 ĐẢM BẢO DÒNG NÀY CÓ
