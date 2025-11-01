@@ -16,8 +16,11 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const API_URL =
+      process.env.REACT_APP_API_URL || "https://group6-project-rwbe.onrender.com";
+
     try {
-      const res = await axios.post("http://localhost:5000/auth/login", {
+      const res = await axios.post(`${API_URL}/auth/login`, {
         email,
         password,
       });
@@ -28,7 +31,7 @@ function Login() {
         // ✅ Lưu vào Redux
         dispatch(loginSuccess({ token: data.accessToken, user: data.user }));
 
-        // ✅ Lưu token vào localStorage nếu cần
+        // ✅ Lưu token vào localStorage
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken || "");
         localStorage.setItem("user", JSON.stringify(data.user));
