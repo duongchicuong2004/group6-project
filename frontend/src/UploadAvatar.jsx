@@ -6,10 +6,23 @@ const UploadAvatar = () => {
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState("");
 
-  // ✅ Lấy URL API từ .env hoặc fallback localhost
-  const API_URL =
-    process.env.REACT_APP_API_URL || "http://localhost:5000";
+  // ✅ Lấy URL API (backend chạy ở localhost:5000)
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
+  // ✅ Lấy token nếu cần (nếu API không dùng JWT thì có thể bỏ)
+  const token =
+    localStorage.getItem("accessToken") || localStorage.getItem("token");
+
+  // ✅ Khi chọn ảnh
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
+    }
+  };
+
+  // ✅ Upload ảnh
   const handleUpload = async (e) => {
     e.preventDefault();
 
@@ -18,37 +31,28 @@ const UploadAvatar = () => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("avatar", file);
-
-    // ✅ Lấy email & token từ localStorage
-    const email = localStorage.getItem("email");
-    const token = localStorage.getItem("token");
-    if (email) formData.append("email", email);
-
     try {
-      const res = await axios.post(`${API_URL}/auth/upload-avatar`, formData, {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      formData.append("email", "test@example.com"); // ⚠️ BẮT BUỘC vì backend của bạn cần email
+
+      const res = await axios.post(`${API_URL}/upload-avatar`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: token ? `Bearer ${token}` : "",
         },
       });
 
+      console.log("✅ Server trả về:", res.data);
       setMessage("🎉 Cập nhật ảnh đại diện thành công!");
       setFile(null);
       setPreview(null);
     } catch (err) {
-      console.error("Upload error:", err);
-      setMessage(err.response?.data?.message || "❌ Lỗi khi tải ảnh lên.");
-    }
-  };
-
-  // ✅ Hiển thị ảnh xem trước
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (selected) {
-      setFile(selected);
-      setPreview(URL.createObjectURL(selected));
+      console.error("❌ Upload error:", err);
+      setMessage(
+        err.response?.data?.message ||
+          `❌ Lỗi upload (${err.response?.status || "không rõ"})`
+      );
     }
   };
 

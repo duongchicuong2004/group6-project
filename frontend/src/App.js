@@ -109,10 +109,12 @@ function App() {
                 <Link to="/profile">
                   <button>Thông tin cá nhân</button>
                 </Link>
-                <Link to="/upload-avatar">
-                  <button>Upload Avatar</button>
-                </Link>
-
+                {/* Ẩn tạm thời nút Upload Avatar */}
+                {false && (
+                  <Link to="/upload-avatar">
+                    <button>Upload Avatar</button>
+                  </Link>
+                )}
                 {isAdmin && (
                   <Link to="/admin/logs">
                     <button
