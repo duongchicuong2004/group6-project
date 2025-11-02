@@ -1,4 +1,5 @@
 // 📁 src/App.jsx
+import { useLocation } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
@@ -65,58 +66,85 @@ function App() {
     navigate("/login");
   };
 
+  const location = useLocation(); // Lấy đường dẫn hiện tại
+
+  // ✅ Các trang có menu nằm DƯỚI
+  const lowerMenuPaths = ["/", "/login", "/signup", "/forgot-password"];
+  const isLowerMenuPage = lowerMenuPaths.includes(location.pathname);
+
   return (
-    <div className="app-container">
+    <div
+      className="app-container"
+      style={{
+        display: "flex",
+        justifyContent: isLowerMenuPage ? "flex-end" : "flex-start",
+        alignItems: "center",
+        minHeight: "100vh",
+        paddingTop: isLowerMenuPage ? "0" : "40px",
+      }}
+    >
       <div className="app-card">
         <h2>📋 Trang Quản Lý Người Dùng</h2>
 
-        {/* 🔹 Menu điều hướng */}
-        <div className="nav-buttons">
-          {!token ? (
-            <>
-              <Link to="/login"><button>Đăng nhập</button></Link>
-              <Link to="/signup"><button>Đăng ký</button></Link>
-              <Link to="/forgot-password"><button>Quên mật khẩu</button></Link>
-            </>
-          ) : (
-            <>
-              <Link to="/users"><button>Quản lý người dùng</button></Link>
-              <Link to="/profile"><button>Thông tin cá nhân</button></Link>
-              <Link to="/upload-avatar"><button>Upload Avatar</button></Link>
-
-              {isAdmin && (
-                <Link to="/admin/logs">
-                  <button style={{ backgroundColor: "#00695c", color: "white" }}>
-                    📘 Xem Log Hoạt Động
-                  </button>
+        {/* 🔹 Chỉ hiển thị menu ở TRÊN nếu KHÔNG thuộc nhóm "lowerMenu" */}
+        {!isLowerMenuPage && (
+          <div className="nav-buttons">
+            {!token ? (
+              <>
+                <Link to="/forgot-password">
+                  <button>Quên mật khẩu</button>
                 </Link>
-              )}
+                <Link to="/signup">
+                  <button>Đăng ký</button>
+                </Link>
+                <Link to="/login">
+                  <button>Quay Lại Đăng nhập</button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/users">
+                  <button>Quản lý người dùng</button>
+                </Link>
+                <Link to="/profile">
+                  <button>Thông tin cá nhân</button>
+                </Link>
+                <Link to="/upload-avatar">
+                  <button>Upload Avatar</button>
+                </Link>
 
-              <button
-                onClick={handleLogout}
-                style={{
-                  marginLeft: "8px",
-                  backgroundColor: "#d32f2f",
-                  color: "white",
-                }}
-              >
-                Đăng xuất
-              </button>
-            </>
-          )}
-        </div>
+                {isAdmin && (
+                  <Link to="/admin/logs">
+                    <button
+                      style={{ backgroundColor: "#00695c", color: "white" }}
+                    >
+                      📘 Xem Log Hoạt Động
+                    </button>
+                  </Link>
+                )}
 
-        {/* 🔹 Routes */}
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: "8px",
+                    backgroundColor: "#d32f2f",
+                    color: "white",
+                  }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 🔹 Nội dung chính */}
         <Routes>
-          {/* Đăng nhập */}
           <Route path="/login" element={<Login />} />
-
-          {/* Các route công khai */}
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Trang profile (chỉ khi đăng nhập) */}
           <Route
             path="/profile"
             element={
@@ -126,7 +154,6 @@ function App() {
             }
           />
 
-          {/* Trang upload avatar */}
           <Route
             path="/upload-avatar"
             element={
@@ -136,7 +163,6 @@ function App() {
             }
           />
 
-          {/* Trang user list (chỉ admin / moderator) */}
           <Route
             path="/users"
             element={
@@ -187,7 +213,6 @@ function App() {
             }
           />
 
-          {/* Trang logs (chỉ admin) */}
           <Route
             path="/admin/logs"
             element={
@@ -197,7 +222,6 @@ function App() {
             }
           />
 
-          {/* Trang mặc định */}
           <Route
             path="/"
             element={
@@ -223,9 +247,23 @@ function App() {
             }
           />
 
-          {/* Trang không tồn tại */}
           <Route path="*" element={<h3>404 - Trang không tồn tại</h3>} />
         </Routes>
+
+        {/* 🔹 Riêng trang Login / Signup / ForgotPassword → menu nằm DƯỚI */}
+        {isLowerMenuPage && (
+          <div className="nav-buttons" style={{ marginTop: "20px" }}>
+            <Link to="/forgot-password">
+              <button>Quên mật khẩu</button>
+            </Link>
+            <Link to="/signup">
+              <button>Đăng ký</button>
+            </Link>
+            <Link to="/login">
+              <button>Quay Lại Đăng nhập</button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

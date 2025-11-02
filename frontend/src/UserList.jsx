@@ -9,10 +9,8 @@ function UserList({ users = [], setUsers, fetchUsers }) {
     role: "User",
   });
 
-  // ✅ Đặt API URL qua biến môi trường
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-  // ✅ Khi bấm "Sửa"
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
@@ -22,7 +20,6 @@ function UserList({ users = [], setUsers, fetchUsers }) {
     });
   };
 
-  // ✅ Cập nhật user
   const handleUpdate = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -38,7 +35,6 @@ function UserList({ users = [], setUsers, fetchUsers }) {
     }
   };
 
-  // ✅ Xóa user
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa tài khoản này không?")) return;
     try {
@@ -83,12 +79,21 @@ function UserList({ users = [], setUsers, fetchUsers }) {
             placeholder="Email"
           />
 
-          {/* ✅ Thêm chọn vai trò */}
+          {/* ✅ Chỉnh style cho combo box giống ô input */}
           <select
             value={formData.role}
             onChange={(e) =>
               setFormData({ ...formData, role: e.target.value })
             }
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: "6px",
+              fontSize: "14px",
+              outline: "none",
+              height: "36px",
+              marginRight: "8px",
+            }}
           >
             <option value="User">User</option>
             <option value="Moderator">Moderator</option>
