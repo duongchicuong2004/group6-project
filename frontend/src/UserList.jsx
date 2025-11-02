@@ -111,13 +111,51 @@ function UserList({ users = [], setUsers, fetchUsers }) {
       <ul className="user-list">
         {Array.isArray(users) && users.length > 0 ? (
           users.map((u) => (
-            <li key={u._id} className="user-item">
-              <div>
+           <li
+              key={u._id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: "#f0fdf4", // xanh nhạt nhẹ
+                border: "1px solid #86efac",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                marginBottom: "8px",
+              }}
+            >
+              <div style={{ fontWeight: 500, color: "#064e3b" }}>
                 {u.username} - {u.email} ({u.role})
               </div>
-              <div>
-                <button onClick={() => handleEdit(u)}>Sửa</button>
-                <button onClick={() => handleDelete(u._id)}>Xóa</button>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => handleEdit(u)}
+                  style={{
+                    backgroundColor: "#16a34a",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Sửa
+                </button>
+
+                <button
+                  onClick={() => handleDelete(u._id)}
+                  style={{
+                    backgroundColor: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Xóa
+                </button>
               </div>
             </li>
           ))

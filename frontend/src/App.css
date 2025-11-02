@@ -43,24 +43,29 @@ h2 {
 /* ============================= */
 /* 🔹 Thanh điều hướng */
 /* ============================= */
+/* 🔹 Căn đều và cho nút cùng kích thước */
 .nav-buttons {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 25px;
 }
 
+/* 🔹 Nút đồng đều, chiều rộng tối thiểu để không co lệch */
 .nav-buttons button {
   background-color: #00796b;
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 22px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s ease;
+  min-width: 150px; /* ✅ tất cả nút có độ rộng bằng nhau */
+  text-align: center;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
 .nav-buttons button:hover {
